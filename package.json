@@ -1,0 +1,66 @@
+{
+  "name": "@webwriter/music-score",
+  "version": "0.1.0",
+  "description": "Import, edit, and play scores in a WebWriter document.",
+  "type": "module",
+  "keywords": [
+    "webwriter-widget",
+    "widget-lang-en",
+    "widget-lang-de",
+    "music",
+    "notation",
+    "musicxml"
+  ],
+  "files": [
+    "dist",
+    "src",
+    "icon.svg",
+    "README.md",
+    "build.mjs",
+    "test"
+  ],
+  "exports": {
+    "./widgets/webwriter-music-score.js": "./dist/webwriter-music-score.js",
+    "./snippets/practice-phrase.html": "./dist/snippets/practice-phrase.html",
+    "./snippets/bach-prelude.html": "./dist/snippets/bach-prelude.html",
+    "./snippets/guitar-tab.html": "./dist/snippets/guitar-tab.html",
+    "./snippets/drum-tab.html": "./dist/snippets/drum-tab.html",
+    "./snippets/jianpu.html": "./dist/snippets/jianpu.html",
+    "./icon": "./icon.svg"
+  },
+  "editingConfig": {
+    "./widgets/webwriter-music-score": {
+      "label": {
+        "_": "Music Score",
+        "de": "Partitur"
+      }
+    },
+    "./snippets/practice-phrase": {
+      "label": {
+        "_": "Practice phrase",
+        "de": "Übungsphrase"
+      }
+    },
+    "./snippets/bach-prelude": {
+      "label": { "_": "Bach · Prelude in C major", "de": "Bach · Präludium in C-Dur" }
+    },
+    "./snippets/guitar-tab": {
+      "label": { "_": "Guitar tab", "de": "Gitarrentabulatur" }
+    },
+    "./snippets/drum-tab": {
+      "label": { "_": "Drum tab", "de": "Schlagzeugtabulatur" }
+    },
+    "./snippets/jianpu": {
+      "label": { "_": "Jianpu", "de": "Jianpu" }
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test",
+    "prepack": "npm run build",
+    "pretest": "npm run build"
+  },
+  "devDependencies": {
+    "@coderline/alphatab": "1.9.0"
+  }
+}
