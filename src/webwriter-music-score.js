@@ -11,7 +11,7 @@ import {
 import { playbackInstrumentName } from "./score-instruments.js"
 import { copyPassage, editPassage, inPassage, passageBetween, readPassage, sameVoice } from "./score-passage.js"
 import { applyScoreType, defaultScoreType, scoreScales, scoreTypes } from "./score-notation.js"
-import { importLabel, messages, sizeOption, typeOption } from "./messages.js"
+import { languageAncestors, messages, optionFor, sizeOption, typeOption } from "./messages.js"
 import { completionPreview, entryRhythm, rhythmShortcut, scoreCompletions } from "./score-completion.js"
 
 const tagName = "webwriter-music-score"
@@ -203,9 +203,12 @@ const template = `
 
 class MusicScore extends HTMLElement {
   static observedAttributes = ["contenteditable", "lang", "type", "size"]
-  static options = { type: typeOption, size: sizeOption }
-  static actions = {
-    importMusicXML: { label: importLabel, input: { type: "file", accept } },
+  get options() {
+    return { type: optionFor(this, typeOption), size: optionFor(this, sizeOption) }
+  }
+
+  get actions() {
+    return { importMusicXML: { label: { _: messages(this).importScore }, input: { type: "file", accept } } }
   }
 
   #ui
@@ -235,11 +238,14 @@ class MusicScore extends HTMLElement {
   #notice = null
   #importRequest = 0
   #observer = new MutationObserver(() => this.#sync())
-  #languageObserver = new MutationObserver(() => {
+  #languageObserver = new MutationObserver(() => this.#refreshLanguage())
+
+  #refreshLanguage() {
     this.#labelPoints()
     this.#refreshCompletion()
     this.#updateControls()
-  })
+    this.dispatchEvent(new Event("optionschange", { bubbles: true }))
+  }
 
   constructor() {
     super()
@@ -328,7 +334,8 @@ class MusicScore extends HTMLElement {
       subtree: true, childList: true, characterData: true, attributes: true,
       attributeFilter: ["slot", "type", "src", "data-music-score", "data-musical-score"],
     })
-    for (let ancestor = this.parentElement; ancestor; ancestor = ancestor.parentElement) {
+    for (const ancestor of languageAncestors(this)) {
+      if (ancestor === this) continue
       this.#languageObserver.observe(ancestor, { attributes: true, attributeFilter: ["lang"] })
     }
     this.#sync()
@@ -364,8 +371,7 @@ class MusicScore extends HTMLElement {
       return
     }
     if (name === "lang") {
-      this.#labelPoints()
-      this.#refreshCompletion()
+      this.#refreshLanguage()
     } else {
       this.#placeGutter()
       if (this.#editing) this.#drawPoints()

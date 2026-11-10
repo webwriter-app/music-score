@@ -9,7 +9,14 @@
     "widget-lang-de",
     "music",
     "notation",
-    "musicxml"
+    "musicxml",
+    "widget-lang-en-US",
+    "widget-lang-en-GB",
+    "widget-lang-en-CA",
+    "widget-lang-en-AU",
+    "widget-lang-en-IN",
+    "widget-lang-fr",
+    "widget-lang-es"
   ],
   "files": [
     "dist",
@@ -32,26 +39,112 @@
     "./widgets/webwriter-music-score": {
       "label": {
         "_": "Music Score",
-        "de": "Partitur"
+        "de": "Partitur",
+        "en": "Music Score",
+        "en-US": "Music Score",
+        "en-GB": "Music Score",
+        "en-CA": "Music Score",
+        "en-AU": "Music Score",
+        "en-IN": "Music Score",
+        "fr": "Partition",
+        "es": "Partitura"
       }
     },
     "./snippets/practice-phrase": {
       "label": {
         "_": "Practice phrase",
-        "de": "Übungsphrase"
+        "de": "Übungsphrase",
+        "en": "Practice phrase",
+        "en-US": "Practice phrase",
+        "en-GB": "Practice phrase",
+        "en-CA": "Practice phrase",
+        "en-AU": "Practice phrase",
+        "en-IN": "Practice phrase",
+        "fr": "Phrase d’entraînement",
+        "es": "Frase de práctica"
       }
     },
     "./snippets/bach-prelude": {
-      "label": { "_": "Bach · Prelude in C major", "de": "Bach · Präludium in C-Dur" }
+      "label": {
+        "_": "Bach · Prelude in C major",
+        "de": "Bach · Präludium in C-Dur",
+        "en": "Bach · Prelude in C major",
+        "en-US": "Bach · Prelude in C major",
+        "en-GB": "Bach · Prelude in C major",
+        "en-CA": "Bach · Prelude in C major",
+        "en-AU": "Bach · Prelude in C major",
+        "en-IN": "Bach · Prelude in C major",
+        "fr": "Bach · Prélude en do majeur",
+        "es": "Bach · Preludio en do mayor"
+      }
     },
     "./snippets/guitar-tab": {
-      "label": { "_": "Guitar tab", "de": "Gitarrentabulatur" }
+      "label": {
+        "_": "Guitar tab",
+        "de": "Gitarrentabulatur",
+        "en": "Guitar tab",
+        "en-US": "Guitar tab",
+        "en-GB": "Guitar tab",
+        "en-CA": "Guitar tab",
+        "en-AU": "Guitar tab",
+        "en-IN": "Guitar tab",
+        "fr": "Tablature de guitare",
+        "es": "Tablatura de guitarra"
+      }
     },
     "./snippets/drum-tab": {
-      "label": { "_": "Drum tab", "de": "Schlagzeugtabulatur" }
+      "label": {
+        "_": "Drum tab",
+        "de": "Schlagzeugtabulatur",
+        "en": "Drum tab",
+        "en-US": "Drum tab",
+        "en-GB": "Drum tab",
+        "en-CA": "Drum tab",
+        "en-AU": "Drum tab",
+        "en-IN": "Drum tab",
+        "fr": "Tablature de batterie",
+        "es": "Tablatura de batería"
+      }
     },
     "./snippets/jianpu": {
-      "label": { "_": "Jianpu", "de": "Jianpu" }
+      "label": {
+        "_": "Jianpu",
+        "de": "Jianpu",
+        "en": "Jianpu",
+        "en-US": "Jianpu",
+        "en-GB": "Jianpu",
+        "en-CA": "Jianpu",
+        "en-AU": "Jianpu",
+        "en-IN": "Jianpu",
+        "fr": "Jianpu",
+        "es": "Jianpu"
+      }
+    },
+    ".": {
+      "label": {
+        "_": "Music Score",
+        "en": "Music Score",
+        "en-US": "Music Score",
+        "en-GB": "Music Score",
+        "en-CA": "Music Score",
+        "en-AU": "Music Score",
+        "en-IN": "Music Score",
+        "fr": "Partition",
+        "de": "Partitur",
+        "es": "Partitura"
+      },
+      "description": {
+        "_": "Import, edit, and play scores in a WebWriter document.",
+        "en": "Import, edit, and play scores in a WebWriter document.",
+        "en-US": "Import, edit, and play scores in a WebWriter document.",
+        "en-GB": "Import, edit, and play scores in a WebWriter document.",
+        "en-CA": "Import, edit, and play scores in a WebWriter document.",
+        "en-AU": "Import, edit, and play scores in a WebWriter document.",
+        "en-IN": "Import, edit, and play scores in a WebWriter document.",
+        "fr": "Importez, modifiez et jouez des partitions dans un document WebWriter.",
+        "de": "Importieren, bearbeiten und spielen Sie Partituren in einem WebWriter-Dokument ab.",
+        "es": "Importa, edita y reproduce partituras en un documento de WebWriter."
+      }
     }
   },
   "scripts": {

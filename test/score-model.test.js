@@ -12,13 +12,35 @@ import { copyPassage, editPassage, passageBetween, readPassage } from "../dist/s
 import { appendButtonRect, endBarDragDelta, scorePoints, trackLabelPositions } from "../dist/score-points.js"
 import { NotationElement, Settings, midi, model, rendering, synth } from "../dist/vendor/alphaTab.core.min.mjs"
 import { scoreCompletions } from "../dist/score-completion.js"
-import { messages } from "../dist/messages.js"
+import { messages, optionFor, sizeOption } from "../dist/messages.js"
 
 const fixture = readFileSync(new URL("./phrase.musicxml", import.meta.url))
 const beats = (score, bar = 0) => score.tracks[0].staves[0].bars[bar].voices[0].beats
 const reopen = score => readScore(serializeScore(score))
 const staff = score => score.tracks[0].staves[0]
-const english = messages({ closest: () => null, ownerDocument: { documentElement: { lang: "en" } } })
+function languageNode(lang, parentElement = null) {
+  return {
+    parentElement,
+    getRootNode: () => null,
+    hasAttribute: name => name === "lang" && lang !== undefined,
+    getAttribute: name => name === "lang" ? lang ?? null : null,
+  }
+}
+
+const english = messages(languageNode("en"))
+
+test("score messages and drawer choices follow each instance's language", () => {
+  const inherited = languageNode(undefined, languageNode("de-CH"))
+  const explicitEnglish = languageNode("en-GB", inherited)
+  assert.equal(messages(inherited).play, "Abspielen")
+  assert.equal(messages(explicitEnglish).play, "Play")
+  assert.equal(messages(languageNode("", inherited)).play, "Play")
+  assert.equal(optionFor(inherited, sizeOption).options[0].label._, "Kompakt")
+  assert.equal(optionFor(explicitEnglish, sizeOption).options[0].label._, "Compact")
+  assert.equal(messages(languageNode("fr-CA")).importScore, "Importer du MusicXML")
+  assert.equal(optionFor(languageNode("es-419"), sizeOption).label._, "Tamaño")
+  assert.equal(optionFor(languageNode("constructor"), sizeOption).label._, "Size")
+})
 
 test("completion enters a spelled pitch at the chosen duration without moving later notes", () => {
   const score = blankScore(defaultScoreType)
