@@ -223,6 +223,7 @@ const { importMusicXML, serializeScore } = await import("./dist/score-model.js")
 const { importer } = await import("./dist/vendor/alphaTab.core.min.mjs")
 const phrase = importMusicXML(await readFile(new URL("./test/phrase.musicxml", root)))
 const prelude = importMusicXML(await readFile(new URL("./test/bach-prelude.musicxml", root)))
+const snippetTranslations = JSON.parse(await readFile(new URL("./src/snippet-labels.json", root), "utf8"))
 const snippets = new URL("./snippets/", dist)
 await mkdir(snippets)
 const examples = [
@@ -244,8 +245,34 @@ const examples = [
   `), "drum-tab"],
   ["jianpu", phrase, "jianpu"],
 ]
-await Promise.all(examples.map(([name, score, type]) =>
-  writeFile(new URL(name + ".html", snippets), `<webwriter-music-score${type ? ` type="${type}"` : ""}>
+await Promise.all(examples.map(([name, score, type]) => {
+  const source = {
+    title: score.title,
+    subTitle: score.subTitle,
+    artist: score.artist,
+    tracks: score.tracks.map(({ name, shortName }) => ({ name, shortName })),
+  }
+  const seed = { source, labels: structuredClone(source) }
+  const localized = Object.fromEntries(Object.entries(snippetTranslations[name] ?? {}).map(([locale, labels]) => {
+    const payload = structuredClone(seed)
+    for (const key of ["title", "subTitle", "artist"]) {
+      if (typeof labels[key] === "string") payload.labels[key] = labels[key]
+    }
+    for (const [index, label] of (labels.tracks ?? []).entries()) {
+      if (!payload.labels.tracks[index] || !label) continue
+      for (const key of ["name", "shortName"]) {
+        if (typeof label[key] === "string") payload.labels.tracks[index][key] = label[key]
+      }
+    }
+    return [locale, JSON.stringify(payload)]
+  }))
+  const dataText = JSON.stringify(seed)
+  const localizedBlock = Object.keys(localized).length
+    ? `<script type="application/json" class="snippet-localization">${JSON.stringify({ [dataText + "#1"]: localized })}</script>\n`
+    : ""
+  return writeFile(new URL(name + ".html", snippets), `<webwriter-music-score${type ? ` type="${type}"` : ""}>
   <script type="application/json" slot="data" data-music-score>${serializeScore(score)}</script>
+  <script type="application/json" slot="data" data-music-score-labels>${dataText}</script>
 </webwriter-music-score>
-`)))
+${localizedBlock}`)
+}))

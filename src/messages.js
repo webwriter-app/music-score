@@ -1,23 +1,34 @@
+import { localeData } from "./locale-data.js"
+
+function optionLabels(source, existing = {}) {
+  const labels = { _: source, ...existing }
+  for (const [locale, data] of Object.entries(localeData)) {
+    const translation = data.options?.[source]
+    if (translation) labels[locale] = translation
+  }
+  return labels
+}
+
 export const typeOption = {
   type: "select",
   control: "select",
-  label: { _: "Type", de: "Typ", fr: "Type", es: "Tipo" },
+  label: optionLabels("Type", { de: "Typ", fr: "Type", es: "Tipo" }),
   options: [
-    { value: "standard", label: { _: "Standard staff", de: "Notensystem", fr: "Portée standard", es: "Pentagrama estándar" } },
-    { value: "guitar-tab", label: { _: "Guitar tab", de: "Gitarren-Tab", fr: "Tablature de guitare", es: "Tablatura de guitarra" } },
-    { value: "drum-tab", label: { _: "Drum tab", de: "Drum-Tab" } },
-    { value: "jianpu", label: { _: "Jianpu", de: "Jianpu", fr: "Jianpu", es: "Jianpu" } },
+    { value: "standard", label: optionLabels("Standard staff", { de: "Notensystem", fr: "Portée standard", es: "Pentagrama estándar" }) },
+    { value: "guitar-tab", label: optionLabels("Guitar tab", { de: "Gitarren-Tab", fr: "Tablature de guitare", es: "Tablatura de guitarra" }) },
+    { value: "drum-tab", label: optionLabels("Drum tab", { de: "Drum-Tab" }) },
+    { value: "jianpu", label: optionLabels("Jianpu", { de: "Jianpu", fr: "Jianpu", es: "Jianpu" }) },
   ],
 }
 
 export const sizeOption = {
   type: "select",
   control: "select",
-  label: { _: "Size", de: "Größe", fr: "Taille", es: "Tamaño" },
+  label: optionLabels("Size", { de: "Größe", fr: "Taille", es: "Tamaño" }),
   options: [
-    { value: "compact", label: { _: "Compact", de: "Kompakt", fr: "Compact", es: "Compacto" } },
-    { value: "normal", label: { _: "Normal", de: "Normal", fr: "Normal", es: "Normal" } },
-    { value: "spacious", label: { _: "Spacious", de: "Großzügig", fr: "Spacieux", es: "Espacioso" } },
+    { value: "compact", label: optionLabels("Compact", { de: "Kompakt", fr: "Compact", es: "Compacto" }) },
+    { value: "normal", label: optionLabels("Normal", { de: "Normal", fr: "Normal", es: "Normal" }) },
+    { value: "spacious", label: optionLabels("Spacious", { de: "Großzügig", fr: "Spacieux", es: "Espacioso" }) },
   ],
 }
 
@@ -277,7 +288,12 @@ const es = {
   jianpu: "Las partes de percusión usan la notación estándar.",
 }
 
-const dictionaries = { en, de, fr, es }
+const dictionaries = {
+  en, de, fr, es,
+  ...Object.fromEntries(Object.entries(localeData)
+    .filter(([, data]) => data.messages)
+    .map(([locale, data]) => [locale, data.messages])),
+}
 
 export function* languageAncestors(element) {
   for (let node = element; node;) {
@@ -289,19 +305,28 @@ export function* languageAncestors(element) {
 
 export function language(element) {
   for (const node of languageAncestors(element)) {
-    if (node.hasAttribute("lang")) return node.getAttribute("lang").trim().toLowerCase().split("-")[0]
+    if (node.hasAttribute("lang")) return node.getAttribute("lang").trim().toLowerCase()
   }
   return ""
 }
 
 export function messages(element) {
   const locale = language(element)
-  return Object.hasOwn(dictionaries, locale) ? dictionaries[locale] : en
+  const exact = Object.keys(dictionaries).find(tag => tag.toLowerCase() === locale)
+  if (exact) return dictionaries[exact]
+  const base = locale.split("-")[0]
+  const primary = Object.keys(dictionaries).find(tag => tag.toLowerCase() === base)
+  return primary ? dictionaries[primary] : en
 }
 
 export function optionFor(element, option) {
   const locale = language(element)
-  const label = labels => ({ _: Object.hasOwn(labels, locale) ? labels[locale] : labels._ })
+  const base = locale.split("-")[0]
+  const label = labels => {
+    const exact = Object.keys(labels).find(tag => tag.toLowerCase() === locale)
+    const primary = Object.keys(labels).find(tag => tag.toLowerCase() === base)
+    return { _: labels[exact ?? primary ?? "_"] }
+  }
   return {
     ...option,
     label: label(option.label),

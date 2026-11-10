@@ -1,4 +1,12 @@
 import { model } from "./vendor/alphaTab.core.min.mjs"
+import { localeData } from "./locale-data.js"
+
+function translatedInstrument(name, locale) {
+  const exact = Object.keys(localeData).find(tag => tag.toLowerCase() === locale.toLowerCase())
+  const base = locale.split("-")[0].toLowerCase()
+  const primary = Object.keys(localeData).find(tag => tag.toLowerCase() === base)
+  return localeData[exact ?? primary]?.instruments?.[name] ?? name
+}
 
 // General MIDI program order, with zero-based numbers as stored by alphaTab.
 const programs = [
@@ -25,14 +33,16 @@ const drumChannel = 9
 const drumBank = 128
 const channelFields = ["primaryChannel", "secondaryChannel"]
 
-export function playbackInstruments(track) {
-  return track.isPercussion ? kits : programs
+export function playbackInstruments(track, locale = "") {
+  const items = track.isPercussion ? kits : programs
+  return items.map(([id, name]) => [id, translatedInstrument(name, locale)])
 }
 
-export function playbackInstrumentName(track) {
+export function playbackInstrumentName(track, locale = "") {
   const { program } = track.playbackInfo
-  return track.isPercussion ? (kits.find(([id]) => id === program) ?? kits[0])[1]
+  const name = track.isPercussion ? (kits.find(([id]) => id === program) ?? kits[0])[1]
     : programs[program]?.[1] ?? `GM ${program + 1}`
+  return translatedInstrument(name, locale)
 }
 
 export function setPlaybackInstrument(track, program) {

@@ -27,7 +27,7 @@ function glyphRect(sheet, glyph) {
   return { ...start, w: end.x - start.x, h: end.y - start.y }
 }
 
-export function trackLabelPositions(score, systems, braces = [], editing = false) {
+export function trackLabelPositions(score, systems, braces = [], editing = false, locale = "") {
   const { tracks, stylesheet } = score
   const { TrackNameMode, TrackNamePolicy } = model
   const policy = tracks.length === 1 ? stylesheet.singleTrackTrackNamePolicy : stylesheet.multiTrackTrackNamePolicy
@@ -53,7 +53,7 @@ export function trackLabelPositions(score, systems, braces = [], editing = false
       const y = (top + bottom) / 2
       const brace = braces.find(rect => rect.x < left && y >= rect.y && y <= rect.y + rect.h)
       labels.push({
-        name: playbackInstrumentName(track), trackIndex: track.index,
+        name: playbackInstrumentName(track, locale), trackIndex: track.index,
         x: Math.min(system.realBounds.x, brace?.x ?? Infinity), y,
       })
       seen.add(track.index)

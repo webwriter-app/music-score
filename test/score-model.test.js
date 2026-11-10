@@ -7,7 +7,7 @@ import {
   serializeScore, setHeading, setLyric, setScoreText, setTempo, trimMeasures, writtenPitch,
 } from "../dist/score-model.js"
 import { applyScoreType, defaultScoreType, scoreScales } from "../dist/score-notation.js"
-import { setPlaybackInstrument } from "../dist/score-instruments.js"
+import { playbackInstruments, setPlaybackInstrument } from "../dist/score-instruments.js"
 import { copyPassage, editPassage, passageBetween, readPassage } from "../dist/score-passage.js"
 import { appendButtonRect, endBarDragDelta, scorePoints, trackLabelPositions } from "../dist/score-points.js"
 import { NotationElement, Settings, midi, model, rendering, synth } from "../dist/vendor/alphaTab.core.min.mjs"
@@ -40,6 +40,23 @@ test("score messages and drawer choices follow each instance's language", () => 
   assert.equal(messages(languageNode("fr-CA")).importScore, "Importer du MusicXML")
   assert.equal(optionFor(languageNode("es-419"), sizeOption).label._, "Tamaño")
   assert.equal(optionFor(languageNode("constructor"), sizeOption).label._, "Size")
+})
+
+test("advertised languages translate instrument labels without changing MIDI program IDs", () => {
+  const { keywords } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"))
+  const track = blankScore(defaultScoreType).tracks[0]
+  const programs = playbackInstruments(track)
+  const translatedLabels = ["Bright Piano", "Electric Piano 1", "Rain", "Telephone Ring"]
+  const languages = keywords.filter(keyword => keyword.startsWith("widget-lang-"))
+    .map(keyword => keyword.slice("widget-lang-".length))
+  for (const language of languages) {
+    const localized = new Map(playbackInstruments(track, language))
+    assert.deepEqual([...localized.keys()], programs.map(([id]) => id), language)
+    if (language === "en" || language.startsWith("en-")) continue
+    for (const [id, label] of programs) {
+      if (translatedLabels.includes(label)) assert.notEqual(localized.get(id), label, `${language}: ${label}`)
+    }
+  }
 })
 
 test("completion enters a spelled pitch at the chosen duration without moving later notes", () => {
@@ -468,7 +485,7 @@ function snippetScore(name, type) {
   const manifest = JSON.parse(readFileSync(manifestUrl, "utf8"))
   const snippetUrl = new URL(manifest.exports[`./snippets/${name}.html`], manifestUrl)
   const html = readFileSync(snippetUrl, "utf8")
-  const block = html.match(/^<webwriter-music-score(?: type="([^"]+)")?>\s*<script type="application\/json" slot="data" data-music-score>([^<]+)<\/script>\s*<\/webwriter-music-score>\s*$/)
+  const block = html.match(/^<webwriter-music-score(?: type="([^"]+)")?>\s*<script type="application\/json" slot="data" data-music-score>([^<]+)<\/script>/)
   assert.ok(block)
   assert.equal(block[1], type)
   return readScore(block[2])

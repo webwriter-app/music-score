@@ -247,17 +247,17 @@ function hairpinChoices(score, passage, t) {
   }))
 }
 
-export function scoreCompletions(score, context, value, t) {
+export function scoreCompletions(score, context, value, t, locale = "") {
   const query = normalize(value).replace(/\s+/g, " ").replace(/< +| +>/g, match => match.trim())
   const { point, group } = context
   if (point.kind === "instrument") {
     const track = score.tracks[point.trackIndex]
     if (!track) return []
-    const currentName = playbackInstrumentName(track)
+    const currentName = playbackInstrumentName(track, locale)
     const words = query.split(/[\s-]+/).filter(Boolean)
     const priority = entry => query
       ? Number(entry.shortcut === query || normalize(entry.label) === query) : Number(entry.current)
-    return playbackInstruments(track).flatMap(([program, label]) => {
+    return playbackInstruments(track, locale).flatMap(([program, label]) => {
       const shortcut = track.isPercussion ? String(program) : String(program + 1)
       const search = normalize(label) + " " + (track.isPercussion ? "kit " : "gm ") + shortcut
         + (!track.isPercussion && program < 2 ? " acoustic" : "")

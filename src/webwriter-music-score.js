@@ -11,13 +11,14 @@ import {
 import { playbackInstrumentName } from "./score-instruments.js"
 import { copyPassage, editPassage, inPassage, passageBetween, readPassage, sameVoice } from "./score-passage.js"
 import { applyScoreType, defaultScoreType, scoreScales, scoreTypes } from "./score-notation.js"
-import { languageAncestors, messages, optionFor, sizeOption, typeOption } from "./messages.js"
+import { language, languageAncestors, messages, optionFor, sizeOption, typeOption } from "./messages.js"
 import { completionPreview, entryRhythm, rhythmShortcut, scoreCompletions } from "./score-completion.js"
 
 const tagName = "webwriter-music-score"
 const accept = ".musicxml,.xml,.mxl"
 const asset = path => new URL("./vendor/" + path, import.meta.url).href
 const dataSelector = 'script[type="application/json"][slot="data"]:is([data-music-score], [data-musical-score]):not([src])'
+const labelsSelector = 'script[type="application/json"][slot="data"][data-music-score-labels]:not([src])'
 const sameAddress = (left, right) => left?.join("/") === right?.join("/")
 const headingFields = { title: "title", subtitle: "subTitle" }
 const textFonts = {
@@ -218,6 +219,7 @@ class MusicScore extends HTMLElement {
   #score = null
   #scoreType = null
   #snapshot
+  #labelsSnapshot
   #selection = null
   #passage = null
   #targets = new Map()
@@ -241,6 +243,7 @@ class MusicScore extends HTMLElement {
   #languageObserver = new MutationObserver(() => this.#refreshLanguage())
 
   #refreshLanguage() {
+    this.#placeGutter()
     this.#labelPoints()
     this.#refreshCompletion()
     this.#updateControls()
@@ -332,7 +335,7 @@ class MusicScore extends HTMLElement {
     view?.addEventListener("blur", () => this.#updateFocus(false), { signal })
     this.#observer.observe(this, {
       subtree: true, childList: true, characterData: true, attributes: true,
-      attributeFilter: ["slot", "type", "src", "data-music-score", "data-musical-score"],
+      attributeFilter: ["slot", "type", "src", "data-music-score", "data-musical-score", "data-music-score-labels"],
     })
     for (const ancestor of languageAncestors(this)) {
       if (ancestor === this) continue
@@ -354,6 +357,7 @@ class MusicScore extends HTMLElement {
     this.#ui.sheet.hidden = true
     this.#score = null
     this.#snapshot = undefined
+    this.#labelsSnapshot = undefined
     this.#selection = null
     this.#passage = null
     this.#clearPoints()
@@ -426,6 +430,29 @@ class MusicScore extends HTMLElement {
     return Array.from(this.children).find(child => child.matches(dataSelector))
   }
 
+  #labelsBlock() {
+    return Array.from(this.children).find(child => child.matches(labelsSelector))
+  }
+
+  #localizedLabels(score, text) {
+    if (!text) return
+    try {
+      const { source = {}, labels = {} } = JSON.parse(text)
+      if (typeof labels.title === "string" && score.title === source.title) score.title = labels.title
+      if (typeof labels.subTitle === "string" && score.subTitle === source.subTitle) score.subTitle = labels.subTitle
+      if (typeof labels.artist === "string" && score.artist === source.artist) score.artist = labels.artist
+      for (const [index, label] of (labels.tracks ?? []).entries()) {
+        const track = score.tracks[index]
+        const original = source.tracks?.[index]
+        if (!track || !original || !label) continue
+        if (typeof label.name === "string" && track.name === original.name) track.name = label.name
+        if (typeof label.shortName === "string" && track.shortName === original.shortName) track.shortName = label.shortName
+      }
+    } catch {
+      // A malformed optional seed must not prevent the score itself from loading.
+    }
+  }
+
   async importMusicXML([file]) {
     if (!file || !this.isConnected || !this.#editing) return
     const request = ++this.#importRequest
@@ -460,17 +487,22 @@ class MusicScore extends HTMLElement {
       data.textContent = text
       this.append(data)
     }
+    // Once an author changes a localized example, persist its visible labels
+    // in the score itself and discard the insertion-only translation seed.
+    this.#labelsBlock()?.remove()
     this.#sync(keepSelection)
   }
 
   #sync(keepSelection = false) {
     const text = this.#dataBlock()?.textContent ?? null
+    const labelsText = this.#labelsBlock()?.textContent ?? null
     const type = this.type
-    if (text === this.#snapshot && type === this.#scoreType) {
+    if (text === this.#snapshot && labelsText === this.#labelsSnapshot && type === this.#scoreType) {
       this.#updateControls()
       return
     }
     this.#snapshot = text
+    this.#labelsSnapshot = labelsText
     this.#scoreType = type
     if (!keepSelection) {
       this.#selection = null
@@ -483,6 +515,7 @@ class MusicScore extends HTMLElement {
     this.#notice = null
     try {
       const score = text === null ? blankScore(type) : readScore(text)
+      if (score) this.#localizedLabels(score, labelsText)
       if (applyScoreType(score, type)) this.#notice = type
       this.#score = score
     } catch {
@@ -608,7 +641,7 @@ class MusicScore extends HTMLElement {
     transport.style.marginTop = this.#score.title?.trim() ? "" : Math.max(4, y + h / 2 - transportButtonHeight) + "px"
     transport.hidden = false
     const braces = scoreBraces(this.#ui.sheet, this.#ui.score)
-    const labels = trackLabelPositions(this.#score, systems, braces, this.#editing)
+    const labels = trackLabelPositions(this.#score, systems, braces, this.#editing, language(this))
     trackLabels.replaceChildren(...labels.map(({ name, trackIndex, x, y }) => {
       const label = this.ownerDocument.createElement("span")
       label.className = "track-label"
@@ -715,17 +748,20 @@ class MusicScore extends HTMLElement {
   #instrumentLabel(trackIndex, t) {
     const track = this.#score.tracks[trackIndex]
     const part = track.name ? t.instrumentFor.replace("{part}", track.name) : t.instrument
-    return part + " (" + playbackInstrumentName(track) + ")"
+    return part + " (" + playbackInstrumentName(track, language(this)) + ")"
   }
 
   #currentScore() {
     if (!this.isConnected || !this.#editing) return null
     const current = this.#dataBlock()?.textContent ?? null
-    if (current !== this.#snapshot || this.type !== this.#scoreType) {
+    const labelsText = this.#labelsBlock()?.textContent ?? null
+    if (current !== this.#snapshot || labelsText !== this.#labelsSnapshot || this.type !== this.#scoreType) {
       this.#sync()
       return null
     }
-    return current === null ? blankScore(this.#scoreType) : readScore(current)
+    const score = current === null ? blankScore(this.#scoreType) : readScore(current)
+    if (score) this.#localizedLabels(score, labelsText)
+    return score
   }
 
   #commit(change, selection = this.#selection) {
@@ -1193,7 +1229,7 @@ class MusicScore extends HTMLElement {
       badge.setAttribute("aria-label", t.duration + " " + badge.textContent)
       completionInput.setAttribute("aria-describedby", badge.id)
     } else completionInput.removeAttribute("aria-describedby")
-    state.entries = scoreCompletions(this.#score, state, completionInput.value, t)
+    state.entries = scoreCompletions(this.#score, state, completionInput.value, t, language(this))
     completionList.replaceChildren(...state.entries.map((entry, index) => {
       const document = this.ownerDocument
       const row = document.createElement("li")
@@ -1293,7 +1329,7 @@ class MusicScore extends HTMLElement {
     const point = state.point
     this.#restoreFocus = point
     this.#commit(score => {
-      const entry = scoreCompletions(score, state, value, messages(this)).find(entry => entry.id === choice.id)
+      const entry = scoreCompletions(score, state, value, messages(this), language(this)).find(entry => entry.id === choice.id)
       if (!entry) return false
       const result = entry.apply()
       if (entry.advance) {
