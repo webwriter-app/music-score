@@ -863,6 +863,87 @@
           "shortName": "ፒያኖ"
         }
       ]
+    },
+    "yue-Hans": {
+      "title": "练习乐句",
+      "tracks": [
+        {
+          "name": "钢琴",
+          "shortName": "钢琴"
+        }
+      ]
+    },
+    "yue-Hant": {
+      "title": "練習樂句",
+      "tracks": [
+        {
+          "name": "鋼琴",
+          "shortName": "鋼琴"
+        }
+      ]
+    },
+    "kmr": {
+      "title": "Hevoka pratîkê",
+      "tracks": [
+        {
+          "name": "Piyano",
+          "shortName": "Piyano"
+        }
+      ]
+    },
+    "kmr-Latn": {
+      "title": "Hevoka pratîkê",
+      "tracks": [
+        {
+          "name": "Piyano",
+          "shortName": "Piyano"
+        }
+      ]
+    },
+    "kmr-Arab": {
+      "title": "هەڤۆکا پراتیکێ",
+      "tracks": [
+        {
+          "name": "پیانۆ",
+          "shortName": "پیانۆ"
+        }
+      ]
+    },
+    "ckb": {
+      "title": "ڕستەی ڕاهێنان",
+      "tracks": [
+        {
+          "name": "پیانۆ",
+          "shortName": "پیانۆ"
+        }
+      ]
+    },
+    "ckb-Arab": {
+      "title": "ڕستەی ڕاهێنان",
+      "tracks": [
+        {
+          "name": "پیانۆ",
+          "shortName": "پیانۆ"
+        }
+      ]
+    },
+    "af-ZA": {
+      "title": "Oefenfrase",
+      "tracks": [
+        {
+          "name": "Klavier",
+          "shortName": "Klavier"
+        }
+      ]
+    },
+    "af-NA": {
+      "title": "Oefenfrase",
+      "tracks": [
+        {
+          "name": "Klavier",
+          "shortName": "Klavier"
+        }
+      ]
     }
   },
   "bach-prelude": {
@@ -1727,6 +1808,88 @@
         {
           "name": "ፒያኖ",
           "shortName": "ፒያኖ"
+        }
+      ]
+    },
+    "yue-Hans": {
+      "title": "C 大调前奏曲，BWV 846",
+      "tracks": [
+        {
+          "name": "钢琴",
+          "shortName": "钢琴"
+        }
+      ]
+    },
+    "yue-Hant": {
+      "title": "C 大調前奏曲，BWV 846",
+      "tracks": [
+        {
+          "name": "鋼琴",
+          "shortName": "鋼琴"
+        }
+      ]
+    },
+    "kmr": {
+      "title": "Pêşgotina Do major, BWV 846",
+      "tracks": [
+        {
+          "name": "Piyano",
+          "shortName": "Piyano"
+        }
+      ]
+    },
+    "kmr-Latn": {
+      "title": "Pêşgotina Do major, BWV 846",
+      "tracks": [
+        {
+          "name": "Piyano",
+          "shortName": "Piyano"
+        }
+      ]
+    },
+    "kmr-Arab": {
+      "title": "پێشگۆتنا دۆ ماژۆر, BWV 846",
+      "tracks": [
+        {
+          "name": "پیانۆ",
+          "shortName": "پیانۆ"
+        }
+      ],
+      "artist": "ژۆهانن سەباستان باجه"
+    },
+    "ckb": {
+      "title": "پێشەکی لە C major، BWV 846",
+      "tracks": [
+        {
+          "name": "پیانۆ",
+          "shortName": "پیانۆ"
+        }
+      ]
+    },
+    "ckb-Arab": {
+      "title": "پێشەکی لە C major، BWV 846",
+      "tracks": [
+        {
+          "name": "پیانۆ",
+          "shortName": "پیانۆ"
+        }
+      ]
+    },
+    "af-ZA": {
+      "title": "Preludium in C majeur, BWV 846",
+      "tracks": [
+        {
+          "name": "Klavier",
+          "shortName": "Klavier"
+        }
+      ]
+    },
+    "af-NA": {
+      "title": "Preludium in C majeur, BWV 846",
+      "tracks": [
+        {
+          "name": "Klavier",
+          "shortName": "Klavier"
         }
       ]
     }
@@ -2595,6 +2758,87 @@
           "shortName": "ጊታር"
         }
       ]
+    },
+    "yue-Hans": {
+      "title": "吉他乐句",
+      "tracks": [
+        {
+          "name": "吉他",
+          "shortName": "吉他"
+        }
+      ]
+    },
+    "yue-Hant": {
+      "title": "吉他樂句",
+      "tracks": [
+        {
+          "name": "吉他",
+          "shortName": "吉他"
+        }
+      ]
+    },
+    "kmr": {
+      "title": "Hevoka gîtarê",
+      "tracks": [
+        {
+          "name": "Gîtar",
+          "shortName": "Gîtar"
+        }
+      ]
+    },
+    "kmr-Latn": {
+      "title": "Hevoka gîtarê",
+      "tracks": [
+        {
+          "name": "Gîtar",
+          "shortName": "Gîtar"
+        }
+      ]
+    },
+    "kmr-Arab": {
+      "title": "هەڤۆکا گیتارێ",
+      "tracks": [
+        {
+          "name": "گیتار",
+          "shortName": "گیتار"
+        }
+      ]
+    },
+    "ckb": {
+      "title": "ڕستەی گیتار",
+      "tracks": [
+        {
+          "name": "گیتار",
+          "shortName": "گیتار"
+        }
+      ]
+    },
+    "ckb-Arab": {
+      "title": "ڕستەی گیتار",
+      "tracks": [
+        {
+          "name": "گیتار",
+          "shortName": "گیتار"
+        }
+      ]
+    },
+    "af-ZA": {
+      "title": "Kitaarfrase",
+      "tracks": [
+        {
+          "name": "Kitaar",
+          "shortName": "Kitaar"
+        }
+      ]
+    },
+    "af-NA": {
+      "title": "Kitaarfrase",
+      "tracks": [
+        {
+          "name": "Kitaar",
+          "shortName": "Kitaar"
+        }
+      ]
     }
   },
   "drum-tab": {
@@ -3461,6 +3705,87 @@
           "shortName": "ድራም"
         }
       ]
+    },
+    "yue-Hans": {
+      "title": "鼓乐节奏",
+      "tracks": [
+        {
+          "name": "鼓",
+          "shortName": "鼓"
+        }
+      ]
+    },
+    "yue-Hant": {
+      "title": "鼓樂節奏",
+      "tracks": [
+        {
+          "name": "鼓",
+          "shortName": "鼓"
+        }
+      ]
+    },
+    "kmr": {
+      "title": "Rîtma daholê",
+      "tracks": [
+        {
+          "name": "Dahol",
+          "shortName": "Dahol"
+        }
+      ]
+    },
+    "kmr-Latn": {
+      "title": "Rîtma daholê",
+      "tracks": [
+        {
+          "name": "Dahol",
+          "shortName": "Dahol"
+        }
+      ]
+    },
+    "kmr-Arab": {
+      "title": "ریتما داهۆلێ",
+      "tracks": [
+        {
+          "name": "داهۆل",
+          "shortName": "داهۆل"
+        }
+      ]
+    },
+    "ckb": {
+      "title": "ڕیتمی دڕام",
+      "tracks": [
+        {
+          "name": "دڕامەکان",
+          "shortName": "دڕامەکان"
+        }
+      ]
+    },
+    "ckb-Arab": {
+      "title": "ڕیتمی دڕام",
+      "tracks": [
+        {
+          "name": "دڕامەکان",
+          "shortName": "دڕامەکان"
+        }
+      ]
+    },
+    "af-ZA": {
+      "title": "Tromritme",
+      "tracks": [
+        {
+          "name": "Tromme",
+          "shortName": "Tromme"
+        }
+      ]
+    },
+    "af-NA": {
+      "title": "Tromritme",
+      "tracks": [
+        {
+          "name": "Tromme",
+          "shortName": "Tromme"
+        }
+      ]
     }
   },
   "jianpu": {
@@ -4325,6 +4650,87 @@
         {
           "name": "ፒያኖ",
           "shortName": "ፒያኖ"
+        }
+      ]
+    },
+    "yue-Hans": {
+      "title": "练习乐句",
+      "tracks": [
+        {
+          "name": "钢琴",
+          "shortName": "钢琴"
+        }
+      ]
+    },
+    "yue-Hant": {
+      "title": "練習樂句",
+      "tracks": [
+        {
+          "name": "鋼琴",
+          "shortName": "鋼琴"
+        }
+      ]
+    },
+    "kmr": {
+      "title": "Hevoka pratîkê",
+      "tracks": [
+        {
+          "name": "Piyano",
+          "shortName": "Piyano"
+        }
+      ]
+    },
+    "kmr-Latn": {
+      "title": "Hevoka pratîkê",
+      "tracks": [
+        {
+          "name": "Piyano",
+          "shortName": "Piyano"
+        }
+      ]
+    },
+    "kmr-Arab": {
+      "title": "هەڤۆکا پراتیکێ",
+      "tracks": [
+        {
+          "name": "پیانۆ",
+          "shortName": "پیانۆ"
+        }
+      ]
+    },
+    "ckb": {
+      "title": "ڕستەی ڕاهێنان",
+      "tracks": [
+        {
+          "name": "پیانۆ",
+          "shortName": "پیانۆ"
+        }
+      ]
+    },
+    "ckb-Arab": {
+      "title": "ڕستەی ڕاهێنان",
+      "tracks": [
+        {
+          "name": "پیانۆ",
+          "shortName": "پیانۆ"
+        }
+      ]
+    },
+    "af-ZA": {
+      "title": "Oefenfrase",
+      "tracks": [
+        {
+          "name": "Klavier",
+          "shortName": "Klavier"
+        }
+      ]
+    },
+    "af-NA": {
+      "title": "Oefenfrase",
+      "tracks": [
+        {
+          "name": "Klavier",
+          "shortName": "Klavier"
         }
       ]
     }

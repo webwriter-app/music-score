@@ -109,7 +109,16 @@
     "widget-lang-so",
     "widget-lang-ti",
     "widget-lang-sw",
-    "widget-lang-ha"
+    "widget-lang-ha",
+    "widget-lang-yue-Hans",
+    "widget-lang-yue-Hant",
+    "widget-lang-kmr",
+    "widget-lang-kmr-Latn",
+    "widget-lang-kmr-Arab",
+    "widget-lang-ckb",
+    "widget-lang-ckb-Arab",
+    "widget-lang-af-ZA",
+    "widget-lang-af-NA"
   ],
   "files": [
     "dist",
@@ -233,7 +242,16 @@
         "am": "የሙዚቃ ስኮር",
         "om": "Muuziqaa",
         "so": "Laxan",
-        "ti": "ስኮር ሙዚቃ"
+        "ti": "ስኮር ሙዚቃ",
+        "yue-Hans": "乐谱",
+        "yue-Hant": "樂譜",
+        "kmr": "Nota Muzîkê",
+        "kmr-Latn": "Nota Muzîkê",
+        "kmr-Arab": "نۆتا موزیکێ",
+        "ckb": "نۆتەنووس",
+        "ckb-Arab": "نۆتەنووس",
+        "af-ZA": "Partituur",
+        "af-NA": "Partituur"
       }
     },
     "./snippets/practice-phrase": {
@@ -340,7 +358,16 @@
         "am": "የልምምድ ሐረግ",
         "om": "Jecha shaakala",
         "so": "Weedh tababar",
-        "ti": "ናይ ልምምድ ሓረግ"
+        "ti": "ናይ ልምምድ ሓረግ",
+        "yue-Hans": "练习乐句",
+        "yue-Hant": "練習樂句",
+        "kmr": "Hevoka pratîkê",
+        "kmr-Latn": "Hevoka pratîkê",
+        "kmr-Arab": "هەڤۆکا پراتیکێ",
+        "ckb": "ڕستەی ڕاهێنان",
+        "ckb-Arab": "ڕستەی ڕاهێنان",
+        "af-ZA": "Oefenfrase",
+        "af-NA": "Oefenfrase"
       }
     },
     "./snippets/bach-prelude": {
@@ -447,7 +474,16 @@
         "am": "Bach · የC ሜጀር ቅድመ ዜማ",
         "om": "Bach · Seensa C mejar",
         "so": "Bach · Horudhaca C major",
-        "ti": "Bach · መእተዊ ብC ሜጀር"
+        "ti": "Bach · መእተዊ ብC ሜጀር",
+        "yue-Hans": "Bach · C 大调前奏曲",
+        "yue-Hant": "Bach · C 大調前奏曲",
+        "kmr": "Bach · Pêşgotina Do major",
+        "kmr-Latn": "Bach · Pêşgotina Do major",
+        "kmr-Arab": "باجه · پێشگۆتنا دۆ ماژۆر",
+        "ckb": "باخ · پێشەکی بە دو ماژۆر",
+        "ckb-Arab": "باخ · پێشەکی بە دو ماژۆر",
+        "af-ZA": "Bach · Preludium in C majeur",
+        "af-NA": "Bach · Preludium in C majeur"
       }
     },
     "./snippets/guitar-tab": {
@@ -554,7 +590,16 @@
         "am": "የጊታር ታብ",
         "om": "Taabii giitaraa",
         "so": "Tab gitaar",
-        "ti": "ጊታር ታብ"
+        "ti": "ጊታር ታብ",
+        "yue-Hans": "吉他谱",
+        "yue-Hant": "吉他譜",
+        "kmr": "Tabê gîtarê",
+        "kmr-Latn": "Tabê gîtarê",
+        "kmr-Arab": "تابێ گیتارێ",
+        "ckb": "تابی گیتار",
+        "ckb-Arab": "تابی گیتار",
+        "af-ZA": "Kitaar-tabulatuur",
+        "af-NA": "Kitaar-tabulatuur"
       }
     },
     "./snippets/drum-tab": {
@@ -661,7 +706,16 @@
         "am": "የድራም ታብ",
         "om": "Taabii diraamii",
         "so": "Tab durbaan",
-        "ti": "ድራም ታብ"
+        "ti": "ድራም ታብ",
+        "yue-Hans": "鼓谱",
+        "yue-Hant": "鼓譜",
+        "kmr": "Tabê daholê",
+        "kmr-Latn": "Tabê daholê",
+        "kmr-Arab": "تابێ داهۆلێ",
+        "ckb": "تابی دڕام",
+        "ckb-Arab": "تابی دڕام",
+        "af-ZA": "Trom-tabulatuur",
+        "af-NA": "Trom-tabulatuur"
       }
     },
     "./snippets/jianpu": {
@@ -768,7 +822,16 @@
         "am": "ጂያንፑ",
         "om": "Jiyaanpuu",
         "so": "Jianpu",
-        "ti": "ጂያንፑ"
+        "ti": "ጂያንፑ",
+        "yue-Hans": "简谱",
+        "yue-Hant": "簡譜",
+        "kmr": "Jianpu",
+        "kmr-Latn": "Jianpu",
+        "kmr-Arab": "Jianpu",
+        "ckb": "جیانپو",
+        "ckb-Arab": "جیانپو",
+        "af-ZA": "Jianpu",
+        "af-NA": "Jianpu"
       }
     },
     ".": {
@@ -875,7 +938,16 @@
         "am": "የሙዚቃ ስኮር",
         "om": "Muuziqaa",
         "so": "Laxan",
-        "ti": "ስኮር ሙዚቃ"
+        "ti": "ስኮር ሙዚቃ",
+        "yue-Hans": "乐谱",
+        "yue-Hant": "樂譜",
+        "kmr": "Nota Muzîkê",
+        "kmr-Latn": "Nota Muzîkê",
+        "kmr-Arab": "نۆتا موزیکێ",
+        "ckb": "نۆتەنووس",
+        "ckb-Arab": "نۆتەنووس",
+        "af-ZA": "Partituur",
+        "af-NA": "Partituur"
       },
       "description": {
         "_": "Import, edit, and play scores in a WebWriter document.",
@@ -980,7 +1052,16 @@
         "am": "በWebWriter ሰነድ ውስጥ የሙዚቃ ስኮሮችን አስገባ፣ አርትዕ አድርግ እና አጫውት።",
         "om": "Galmee WebWriter keessatti muuziqaa galchi, gulaali, fi taphachiisi.",
         "so": "Geli, tafatir oo daar laxanka dukumentiga WebWriter.",
-        "ti": "ኣብ ሰነድ WebWriter ስኮር ሙዚቃ ኣእቱ፣ ኣስተኻኽልን ኣጻውትን።"
+        "ti": "ኣብ ሰነድ WebWriter ስኮር ሙዚቃ ኣእቱ፣ ኣስተኻኽልን ኣጻውትን።",
+        "yue-Hans": "喺 WebWriter 文件中汇入、编辑同播放乐谱。",
+        "yue-Hant": "喺 WebWriter 文件中匯入、編輯同播放樂譜。",
+        "kmr": "Muzîkê di belgeya WebWriter de bixe, sererast bike û lê bixe.",
+        "kmr-Latn": "Muzîkê di belgeya WebWriter de bixe, sererast bike û lê bixe.",
+        "kmr-Arab": "موزیکێ د بەلگەیا WebWriter دە بخە, سەرەراست بکە ئوو لێ بخە.",
+        "ckb": "نۆتەنووسەکان هاوردە بکە، دەستکارییان بکە و لە بەڵگەنامەی WebWriterدا لێیان بدە.",
+        "ckb-Arab": "نۆتەنووسەکان هاوردە بکە، دەستکارییان بکە و لە بەڵگەنامەی WebWriterدا لێیان بدە.",
+        "af-ZA": "Voer partiture in, wysig dit en speel dit in ’n WebWriter-dokument.",
+        "af-NA": "Voer partiture in, wysig dit en speel dit in ’n WebWriter-dokument."
       }
     }
   },
