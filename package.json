@@ -2,6 +2,7 @@
   "name": "@webwriter/music-score",
   "version": "0.1.0",
   "description": "Import, edit, and play scores in a WebWriter document.",
+  "license": "MIT",
   "type": "module",
   "keywords": [
     "webwriter-widget",
@@ -123,19 +124,31 @@
   "files": [
     "dist",
     "src",
+    "snippets",
     "icon.svg",
     "README.md",
-    "build.mjs",
-    "test"
+    "LICENSE"
   ],
   "exports": {
-    "./widgets/webwriter-music-score.js": "./dist/webwriter-music-score.js",
-    "./snippets/practice-phrase.html": "./dist/snippets/practice-phrase.html",
-    "./snippets/bach-prelude.html": "./dist/snippets/bach-prelude.html",
-    "./snippets/guitar-tab.html": "./dist/snippets/guitar-tab.html",
-    "./snippets/drum-tab.html": "./dist/snippets/drum-tab.html",
-    "./snippets/jianpu.html": "./dist/snippets/jianpu.html",
-    "./icon": "./icon.svg"
+    "./widgets/webwriter-music-score.*": {
+      "source": "./src/widgets/webwriter-music-score.ts",
+      "default": "./dist/widgets/webwriter-music-score.*"
+    },
+    "./snippets/practice-phrase.html": "./snippets/practice-phrase.html",
+    "./snippets/bach-prelude.html": "./snippets/bach-prelude.html",
+    "./snippets/guitar-tab.html": "./snippets/guitar-tab.html",
+    "./snippets/drum-tab.html": "./snippets/drum-tab.html",
+    "./snippets/jianpu.html": "./snippets/jianpu.html",
+    "./icon": "./icon.svg",
+    "./custom-elements.json": "./custom-elements.json",
+    "./tests/widget.*": {
+      "source": "./tests/widget.test.ts",
+      "default": "./dist/tests/widget.*"
+    },
+    "./tests/score-model.*": {
+      "source": "./tests/score-model.test.ts",
+      "default": "./dist/tests/score-model.*"
+    }
   },
   "editingConfig": {
     "./widgets/webwriter-music-score": {
@@ -1066,12 +1079,21 @@
     }
   },
   "scripts": {
-    "build": "node build.mjs",
-    "test": "node --test",
-    "prepack": "npm run build",
-    "pretest": "npm run build"
+    "prepublishOnly": "node scripts/alphatab.mjs && npx @webwriter/build --shared-dependencies",
+    "dev": "node scripts/alphatab.mjs && npx @webwriter/build dev --shared-dependencies"
+  },
+  "dependencies": {
+    "@tabler/icons": "^3.52.0",
+    "@webwriter/widget": "^1.2.0"
   },
   "devDependencies": {
-    "@coderline/alphatab": "1.9.0"
-  }
+    "@coderline/alphatab": "1.9.0",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@webwriter/build": "^1.14.0",
+    "chai": "^6.3.0",
+    "mocha": "^12.0.3",
+    "typescript": "^7.0.2"
+  },
+  "customElements": "custom-elements.json"
 }

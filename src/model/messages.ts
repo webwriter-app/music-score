@@ -1,7 +1,9 @@
-import { localeData } from "./locale-data.js"
+import { localeData } from "../assets/locale-data"
 
-function optionLabels(source, existing = {}) {
-  const labels = { _: source, ...existing }
+export type OptionLabels = Record<string, string>
+
+function optionLabels(source: string, existing: Record<string, string> = {}): OptionLabels {
+  const labels: OptionLabels = { _: source, ...existing }
   for (const [locale, data] of Object.entries(localeData)) {
     const translation = data.options?.[source]
     if (translation) labels[locale] = translation
@@ -32,7 +34,9 @@ export const sizeOption = {
   ],
 }
 
-const en = {
+export type Messages = Record<string, string>
+
+const en: Messages = {
   importScore: "Import MusicXML", play: "Play", pause: "Pause", stop: "Stop",
   insert: "Edit beat. Double-click to place a note.", note: "Edit note. Drag vertically to change pitch.",
   selectNote: "Select note",
@@ -68,7 +72,7 @@ const en = {
   jianpu: "Percussion parts use standard notation.",
 }
 
-const de = {
+const de: Messages = {
   importScore: "MusicXML importieren", play: "Abspielen", pause: "Pausieren", stop: "Stopp",
   insert: "Schlag bearbeiten. Doppelklick setzt eine Note.", note: "Note bearbeiten. Senkrechtes Ziehen ändert die Tonhöhe.",
   selectNote: "Note auswählen",
@@ -104,7 +108,7 @@ const de = {
   jianpu: "Schlagzeugstimmen erscheinen in Standardnotation.",
 }
 
-const fr = {
+const fr: Messages = {
   importScore: "Importer du MusicXML",
   play: "Lire",
   pause: "Mettre en pause",
@@ -196,7 +200,7 @@ const fr = {
   jianpu: "Les parties de percussion utilisent la notation standard.",
 }
 
-const es = {
+const es: Messages = {
   importScore: "Importar MusicXML",
   play: "Reproducir",
   pause: "Pausar",
@@ -288,29 +292,29 @@ const es = {
   jianpu: "Las partes de percusión usan la notación estándar.",
 }
 
-const dictionaries = {
+const dictionaries: Record<string, Messages> = {
   en, de, fr, es,
   ...Object.fromEntries(Object.entries(localeData)
     .filter(([, data]) => data.messages)
-    .map(([locale, data]) => [locale, data.messages])),
+    .map(([locale, data]) => [locale, data.messages as Messages])),
 }
 
-export function* languageAncestors(element) {
-  for (let node = element; node;) {
+export function* languageAncestors(element: Element): Generator<Element> {
+  for (let node: Element | null = element; node;) {
     yield node
     const root = node.getRootNode()
-    node = node.parentElement ?? (root?.host ?? null)
+    node = node.parentElement ?? ((root as ShadowRoot).host ?? null)
   }
 }
 
-export function language(element) {
+export function language(element: Element): string {
   for (const node of languageAncestors(element)) {
-    if (node.hasAttribute("lang")) return node.getAttribute("lang").trim().toLowerCase()
+    if (node.hasAttribute("lang")) return node.getAttribute("lang")!.trim().toLowerCase()
   }
   return ""
 }
 
-export function messages(element) {
+export function messages(element: Element): Messages {
   const locale = language(element)
   const exact = Object.keys(dictionaries).find(tag => tag.toLowerCase() === locale)
   if (exact) return dictionaries[exact]
@@ -319,10 +323,17 @@ export function messages(element) {
   return primary ? dictionaries[primary] : en
 }
 
-export function optionFor(element, option) {
+export type SelectOption = {
+  type: string
+  control: string
+  label: OptionLabels
+  options: { value: string, label: OptionLabels }[]
+}
+
+export function optionFor(element: Element, option: SelectOption) {
   const locale = language(element)
   const base = locale.split("-")[0]
-  const label = labels => {
+  const label = (labels: OptionLabels) => {
     const exact = Object.keys(labels).find(tag => tag.toLowerCase() === locale)
     const primary = Object.keys(labels).find(tag => tag.toLowerCase() === base)
     return { _: labels[exact ?? primary ?? "_"] }

@@ -1,0 +1,1 @@
+{"extends": "@webwriter/build/tsconfig.json", "include": ["src", "tests"]}

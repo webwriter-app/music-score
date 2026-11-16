@@ -1,2 +1,4 @@
 /dist/
 /node_modules/
+/src/assets/alphatab-core.js
+.DS_Store

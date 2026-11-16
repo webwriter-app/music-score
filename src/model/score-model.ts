@@ -1,12 +1,15 @@
-import { Environment, Settings, io, midi, model } from "./vendor/alphaTab.core.min.mjs"
-import { configureBlankInstrument } from "./score-notation.js"
+import { Environment, Settings, io, midi, model } from "../assets/alphatab-core"
+import { configureBlankInstrument } from "./score-notation"
 
 const { Automation, Bar, Beat, Clef, Duration, DynamicValue, GraceType, JsonConverter, KeySignatureType, MasterBar,
   Note, NoteAccidentalMode, Score, SlideOutType, Staff, Track, TupletGroup, Voice } = model
 const maxFileBytes = 8 * 1024 * 1024
 const format = "alphatab-1"
 
-export const durations = [
+export type BeatAddress = [track: number, staff: number, bar: number, voice: number, beat: number]
+export type NoteAddress = [...BeatAddress, note: number]
+
+export const durations: [string, model.Duration][] = [
   ["whole", Duration.Whole],
   ["half", Duration.Half],
   ["quarter", Duration.Quarter],
@@ -15,47 +18,50 @@ export const durations = [
   ["thirtySecond", Duration.ThirtySecond],
   ["sixtyFourth", Duration.SixtyFourth],
 ]
-export const clefs = [Clef.G2, Clef.F4, Clef.C3, Clef.C4]
-const topLine = { [Clef.G2]: 38, [Clef.F4]: 26, [Clef.C3]: 32, [Clef.C4]: 30 }
+export const clefs: model.Clef[] = [Clef.G2, Clef.F4, Clef.C3, Clef.C4]
+const topLine: Partial<Record<model.Clef, number>> = { [Clef.G2]: 38, [Clef.F4]: 26, [Clef.C3]: 32, [Clef.C4]: 30 }
 const naturalPitches = [0, 2, 4, 5, 7, 9, 11]
 const sharps = [3, 0, 4, 1, 5, 2, 6]
 const flats = [6, 2, 5, 1, 4, 0, 3]
-export const meters = [[4, 4], [3, 4], [2, 4], [6, 8]]
+export const meters: [number, number][] = [[4, 4], [3, 4], [2, 4], [6, 8]]
 
 const durationValues = durations.map(([, value]) => value)
 export const restDurations = [...durationValues, Duration.OneHundredTwentyEighth, Duration.TwoHundredFiftySixth]
 const wholeNoteTicks = new midi.MidiFile().division * 4
-const smallestRest = wholeNoteTicks / restDurations.at(-1)
+const smallestRest = wholeNoteTicks / restDurations.at(-1)!
 
-function durationTicks(duration, dots = 0) {
+function durationTicks(duration: model.Duration, dots = 0): number {
   return wholeNoteTicks / duration * (2 - 1 / 2 ** dots)
 }
 
-function supportedRhythm(duration, dots) {
+function supportedRhythm(duration: model.Duration, dots: number): boolean {
   return restDurations.includes(duration) && Number.isInteger(dots) && dots >= 0 && dots <= 2
     && durationTicks(duration, dots) % smallestRest === 0
 }
 
-export function importMusicXML(bytes) {
+export function importMusicXML(bytes: Uint8Array): model.Score {
   if (bytes.length === 0 || bytes.length > maxFileBytes) throw new Error("Invalid MusicXML file size")
   const settings = new Settings()
   settings.importer.maxDecodingBufferSize = maxFileBytes
   const importer = Environment.buildImporters().find(candidate => candidate.name === "MusicXML")
-  importer.init(io.ByteBuffer.fromBuffer(bytes), settings)
-  const score = importer.readScore()
+  importer!.init(io.ByteBuffer.fromBuffer(bytes), settings)
+  const score = importer!.readScore()
   if (!score.tracks.length || !score.masterBars.length) throw new Error("The MusicXML file has no score")
   return score
 }
 
-export function serializeScore(score) {
+export function serializeScore(score: model.Score): string {
   // Script contents are raw text in HTML. Escape markup without altering the parsed JSON.
   return ('{"format":"' + format + '","score":' + JsonConverter.scoreToJson(score) + '}')
     .replaceAll("<", "\\u003c")
 }
 
-function restoreMissingVoices(score) {
+// Stored data is untyped JSON until alphaTab converts it.
+type StoredScore = { tracks?: { staves?: { bars?: { voices: { id?: number, beats: { id?: number }[] }[] }[] }[] }[] }
+
+function restoreMissingVoices(score: StoredScore) {
   const staves = score.tracks?.flatMap(track => track.staves ?? []) ?? []
-  const missing = []
+  const missing: { voices: { id?: number, beats: object[] }[], count: number }[] = []
   for (const staff of staves) {
     let count = 0
     for (const bar of staff.bars ?? []) {
@@ -80,7 +86,7 @@ function restoreMissingVoices(score) {
   }
 }
 
-export function readScore(text) {
+export function readScore(text: string): model.Score {
   const data = JSON.parse(text)
   if (data?.format !== format || !data.score) throw new Error("Unsupported score data")
   restoreMissingVoices(data.score)
@@ -90,30 +96,32 @@ export function readScore(text) {
   return score
 }
 
-export function beatAddress(beat) {
+export function beatAddress(beat: model.Beat): BeatAddress {
   const { voice } = beat
   const { bar } = voice
   const { staff } = bar
   return [staff.track.index, staff.index, bar.index, voice.index, beat.index]
 }
 
-export function noteAddress(note) {
+export function noteAddress(note: model.Note): NoteAddress {
   return [...beatAddress(note.beat), note.index]
 }
 
-export function findBeat(score, [track, staff, bar, voice, beat]) {
+export function findBeat(score: model.Score | null | undefined, address: readonly number[] | null | undefined): model.Beat | undefined {
+  if (!address) return undefined
+  const [track, staff, bar, voice, beat] = address
   return score?.tracks[track]?.staves[staff]?.bars[bar]?.voices[voice]?.beats[beat]
 }
 
-export function findNote(score, address) {
-  return findBeat(score, address)?.notes[address[5]]
+export function findNote(score: model.Score | null | undefined, address: readonly number[] | null | undefined): model.Note | undefined {
+  return findBeat(score, address)?.notes[address![5]]
 }
 
-export function writtenPitch(note) {
+export function writtenPitch(note: model.Note): number {
   return note.octave * 12 + note.tone
 }
 
-export function canChangePitch(note, semitones) {
+export function canChangePitch(note: model.Note | null | undefined, semitones: number): boolean {
   if (!note?.isPiano || note.isTieOrigin || note.isTieDestination || note.harmonicPitch
     || note.hasBend || note.beat.graceType !== GraceType.None) return false
   if (note.isTrill && (note.trillValue + semitones < 0 || note.trillValue + semitones > 127)) return false
@@ -121,7 +129,7 @@ export function canChangePitch(note, semitones) {
   return pitch >= 0 && pitch <= 127 && !note.beat.notes.some(other => other !== note && writtenPitch(other) === pitch)
 }
 
-export function changePitch(note, semitones, accidental = NoteAccidentalMode.Default) {
+export function changePitch(note: model.Note, semitones: number, accidental: model.NoteAccidentalMode = NoteAccidentalMode.Default) {
   if (!canChangePitch(note, semitones)) return false
   const pitch = writtenPitch(note) + semitones
   note.octave = Math.floor(pitch / 12)
@@ -131,25 +139,25 @@ export function changePitch(note, semitones, accidental = NoteAccidentalMode.Def
   return true
 }
 
-function isSimpleBeat(beat) {
+function isSimpleBeat(beat: model.Beat): boolean {
   return supportedRhythm(beat.duration, beat.dots) && !beat.hasTuplet
     && beat.graceType === GraceType.None && !beat.graceGroup
     && beat.displayDuration === durationTicks(beat.duration, beat.dots)
     && beat.playbackDuration === beat.displayDuration
 }
 
-export function isEntryRest(beat) {
+export function isEntryRest(beat: model.Beat | null | undefined): boolean {
   if (!beat?.isRest || beat.isEmpty || beat.hasTuplet || beat.graceType !== GraceType.None
     || beat.graceGroup || beat.playbackDuration !== beat.displayDuration) return false
   return beat.displayDuration >= smallestRest && beat.displayDuration % smallestRest === 0
 }
 
-export function isAvailableRest(beat) {
-  return beat?.isRest && !beat.isEmpty && isSimpleBeat(beat) && !beat.text && !beat.lyrics?.length
+export function isAvailableRest(beat: model.Beat | null | undefined): boolean {
+  return !!beat?.isRest && !beat.isEmpty && isSimpleBeat(beat) && !beat.text && !beat.lyrics?.length
     && !beat.chordId && !beat.fermata && !beat.showDynamics && !beat.crescendo && !beat.automations.length && !beat.style
 }
 
-export function hasDynamic(beat) {
+export function hasDynamic(beat: model.Beat): boolean {
   if (beat.voice.bar.staff.track.score.stylesheet.hideDynamics || beat.isEmpty || beat.voice.isEmpty) return false
   if (beat.showDynamics !== undefined) return beat.showDynamics
   if (beat.isRest) return false
@@ -158,7 +166,7 @@ export function hasDynamic(beat) {
   return !previous || beat.dynamics !== previous.dynamics
 }
 
-export function setDynamic(beat, dynamic) {
+export function setDynamic(beat: model.Beat, dynamic?: model.DynamicValue): boolean {
   const { staff } = beat.voice.bar
   const { stylesheet, tracks } = staff.track.score
   const remove = dynamic === undefined
@@ -166,7 +174,7 @@ export function setDynamic(beat, dynamic) {
 
   const beats = staff.bars.flatMap(bar => bar.voices[beat.voice.index]?.beats ?? [])
   const index = beats.indexOf(beat)
-  const following = []
+  const following: model.Beat[] = []
   for (let i = index + 1; i < beats.length && !hasDynamic(beats[i]); i++) following.push(beats[i])
   if (remove) {
     let i = index - 1
@@ -182,16 +190,18 @@ export function setDynamic(beat, dynamic) {
     }
     stylesheet.hideDynamics = false
   }
+  // Removing resolves the inherited level above, so a value is always set here.
+  const level = dynamic as model.DynamicValue
   beat.showDynamics = !remove
-  beat.dynamics = dynamic
+  beat.dynamics = level
   for (const other of following) {
-    other.dynamics = dynamic
+    other.dynamics = level
     other.showDynamics = false
   }
   return true
 }
 
-function durationChange(beat, duration, dots) {
+function durationChange(beat: model.Beat | null | undefined, duration: model.Duration, dots: number): { count: number, remaining: number } | null {
   if (!beat || !(isSimpleBeat(beat) || isEntryRest(beat)) || !supportedRhythm(duration, dots)
     || beat.notes.some(note => note.isTieOrigin || note.isTieDestination)) return null
 
@@ -209,18 +219,18 @@ function durationChange(beat, duration, dots) {
   return { count, remaining }
 }
 
-export function canChangeDuration(beat, duration, dots = 0) {
+export function canChangeDuration(beat: model.Beat | null | undefined, duration: model.Duration, dots = 0): boolean {
   return durationChange(beat, duration, dots) !== null
 }
 
-export function canEnterDuration(beat, duration, dots = 0) {
+export function canEnterDuration(beat: model.Beat | null | undefined, duration: model.Duration, dots = 0): boolean {
   if (beat?.hasTuplet) return beat.isRest && !beat.isEmpty && beat.graceType === GraceType.None
     && beat.duration === duration && beat.dots === dots
   return isEntryRest(beat) && supportedRhythm(duration, dots)
-    && (beat.displayDuration === durationTicks(duration, dots) || canChangeDuration(beat, duration, dots))
+    && (beat!.displayDuration === durationTicks(duration, dots) || canChangeDuration(beat, duration, dots))
 }
 
-export function changeDuration(beat, duration, dots = 0) {
+export function changeDuration(beat: model.Beat, duration: model.Duration, dots = 0): boolean {
   const change = durationChange(beat, duration, dots)
   if (!change) return false
   beat.duration = duration
@@ -231,23 +241,29 @@ export function changeDuration(beat, duration, dots = 0) {
   return true
 }
 
-function tupletTicks(voice, numerator, denominator, total) {
+function tupletTicks(voice: model.Voice, numerator: number, denominator: number, total: number): number[] | null {
   const group = new TupletGroup(voice)
-  const ticks = []
+  const ticks: number[] = []
   // Spread fractional ticks without changing the total. Let alphaTab validate that
   // the rounded beats still form one complete, renderable group.
   for (let i = 0; i < numerator; i++) {
     const length = Math.round((i + 1) * total / numerator) - Math.round(i * total / numerator)
-    if (length < 1 || !group.check({
+    // check() only reads these fields of the beat.
+    const probe = {
       voice, graceType: GraceType.None, tupletNumerator: numerator, tupletDenominator: denominator,
       displayDuration: length, playbackDuration: length,
-    })) return null
+    } as unknown as model.Beat
+    if (length < 1 || !group.check(probe)) return null
     ticks.push(length)
   }
   return group.isFull ? ticks : null
 }
 
-export function tupletPlans(first, last) {
+export type TupletPlan = {
+  beats: model.Beat[], numerator: number, denominator: number, following: number, remainder: number, ticks: number[], normal: number
+}
+
+export function tupletPlans(first: model.Beat | null | undefined, last: model.Beat | null | undefined): TupletPlan[] {
   if (!first || !last || first.voice !== last.voice) return []
   const { voice, duration, dots } = first
   const beats = voice.beats.slice(first.index, last.index + 1)
@@ -260,7 +276,7 @@ export function tupletPlans(first, last) {
   const preferred = [0, 0, 3, 2, 6, 4, 4, 4, 6][numerator] ?? 8
   const denominators = [preferred, ...Array.from({ length: 16 }, (_, index) => index + 1).filter(value => value !== preferred)]
   const previous = voice.beats[first.index - 1]
-  const plans = []
+  const plans: TupletPlan[] = []
   for (const denominator of denominators) {
     if (denominator === numerator) continue
     if (previous?.tupletNumerator === numerator && previous.tupletDenominator === denominator
@@ -279,20 +295,20 @@ export function tupletPlans(first, last) {
   return plans
 }
 
-export function applyTuplet({ beats, numerator, denominator, following, remainder, ticks, normal }) {
+export function applyTuplet({ beats, numerator, denominator, following, remainder, ticks, normal }: TupletPlan): boolean {
   const truncated = Math.floor(normal * denominator / numerator)
   for (const [index, beat] of beats.entries()) {
     beat.tupletNumerator = numerator
     beat.tupletDenominator = denominator
     beat.overrideDisplayDuration = ticks[index] === truncated ? undefined : ticks[index]
   }
-  const last = beats.at(-1)
+  const last = beats.at(-1)!
   last.voice.beats.splice(last.index + 1, following, ...makeRests(remainder, Duration.Whole, last))
   return true
 }
 
-function makeRests(remaining, longest = Duration.Whole, previous) {
-  const rests = []
+function makeRests(remaining: number, longest: model.Duration = Duration.Whole, previous?: model.Beat | null): model.Beat[] {
+  const rests: model.Beat[] = []
   for (const value of restDurations) {
     if (value < longest) continue
     const length = durationTicks(value)
@@ -311,7 +327,7 @@ function makeRests(remaining, longest = Duration.Whole, previous) {
   return rests
 }
 
-export function blankScore(type) {
+export function blankScore(type?: string): model.Score {
   const score = new Score()
   const track = new Track()
   const staff = new Staff()
@@ -326,7 +342,7 @@ export function blankScore(type) {
   return score
 }
 
-export function appendMeasure(score, amount = 1) {
+export function appendMeasure(score: model.Score, amount = 1): boolean {
   const previous = score.masterBars.at(-1) ?? new MasterBar()
   const { timeSignatureNumerator: count, timeSignatureDenominator: denominator, timeSignatureCommon } = previous
   if (!Number.isSafeInteger(amount) || amount < 1 || !durationValues.includes(denominator)
@@ -370,32 +386,34 @@ export function appendMeasure(score, amount = 1) {
   return true
 }
 
-const noteLinks = [
+type NoteLink = "tieOrigin" | "tieDestination" | "slurOrigin" | "slurDestination" | "hammerPullOrigin" | "hammerPullDestination" | "slideOrigin" | "slideTarget"
+type NoteFlag = "isTieDestination" | "isSlurDestination" | "isHammerPullOrigin" | "slideOutType"
+const noteLinks: [NoteLink, NoteFlag?, model.SlideOutType?][] = [
   ["tieOrigin", "isTieDestination"], ["tieDestination"],
   ["slurOrigin", "isSlurDestination"], ["slurDestination"],
   ["hammerPullOrigin"], ["hammerPullDestination", "isHammerPullOrigin"],
   ["slideOrigin"], ["slideTarget", "slideOutType", SlideOutType.None],
 ]
 
-export function trimMeasures(score, count) {
+export function trimMeasures(score: model.Score, count: number): boolean {
   if (!Number.isSafeInteger(count) || count < 1 || count >= score.masterBars.length) return false
   score.masterBars.splice(count)
-  score.masterBars.at(-1).nextMasterBar = null
+  score.masterBars.at(-1)!.nextMasterBar = null
   for (const track of score.tracks) {
     for (const staff of track.staves) {
       if (staff.bars.length > count) {
         staff.bars.splice(count)
-        staff.bars.at(-1).nextBar = null
+        staff.bars.at(-1)!.nextBar = null
       }
       for (const bar of staff.bars) {
         for (const voice of bar.voices) {
           for (const beat of voice.beats) {
-            if (beat.nextBeat?.voice.bar.index >= count) beat.nextBeat = null
+            if ((beat.nextBeat?.voice.bar.index ?? -1) >= count) beat.nextBeat = null
             for (const note of beat.notes) {
               for (const [link, flag, value = false] of noteLinks) {
-                if (!(note[link]?.beat.voice.bar.index >= count)) continue
-                note[link] = null
-                if (flag) note[flag] = value
+                if (!((note[link]?.beat.voice.bar.index ?? -1) >= count)) continue
+                ;(note as Record<NoteLink, model.Note | null>)[link] = null
+                if (flag) (note as unknown as Record<NoteFlag, unknown>)[flag] = value
               }
             }
           }
@@ -407,19 +425,19 @@ export function trimMeasures(score, count) {
   return true
 }
 
-function supportsPitchedNotes(bar) {
+function supportsPitchedNotes(bar: model.Bar): boolean {
   return topLine[bar.clef] !== undefined && !bar.staff.isPercussion && bar.staff.standardNotationLineCount === 5
 }
 
-export function isPitchedStaff(bar) {
+export function isPitchedStaff(bar: model.Bar): boolean {
   return bar.staff.showStandardNotation && supportsPitchedNotes(bar)
 }
 
-export function staffDegree(beat, step) {
-  return topLine[beat.voice.bar.clef] - step
+export function staffDegree(beat: model.Beat, step: number): number {
+  return topLine[beat.voice.bar.clef]! - step
 }
 
-export function pitchAtStep(beat, step, accidental) {
+export function pitchAtStep(beat: model.Beat, step: number, accidental?: number): number {
   const { bar } = beat.voice
   const degree = staffDegree(beat, step)
   const letter = ((degree % 7) + 7) % 7
@@ -431,7 +449,7 @@ export function pitchAtStep(beat, step, accidental) {
     + bar.staff.transpositionPitch + bar.staff.displayTranspositionPitch - octaveShift
 }
 
-export function canPlaceNote(beat) {
+export function canPlaceNote(beat: model.Beat | null | undefined): beat is model.Beat {
   if (!beat || !supportsPitchedNotes(beat.voice.bar) || beat.isEmpty) return false
   if (beat.hasTuplet) return beat.graceType === GraceType.None && !beat.graceGroup
     && beat.notes.every(note => note.isPiano && !note.isTieOrigin && !note.isTieDestination)
@@ -440,7 +458,7 @@ export function canPlaceNote(beat) {
     && beat.graceType === GraceType.None && !beat.graceGroup && !beat.hasTuplet
 }
 
-function pitchedNote(pitch, accidental) {
+function pitchedNote(pitch: number, accidental?: model.NoteAccidentalMode): model.Note {
   const note = new Note()
   note.octave = Math.floor(pitch / 12)
   note.tone = pitch % 12
@@ -448,7 +466,7 @@ function pitchedNote(pitch, accidental) {
   return note
 }
 
-export function graceTypeFor(beat, count = 1) {
+export function graceTypeFor(beat: model.Beat | null | undefined, count = 1): model.GraceType | null {
   if (!beat || !isPitchedStaff(beat.voice.bar) || beat.isRest || beat.graceType !== GraceType.None
     || beat.notes.some(note => note.isTieDestination) || count < 1) return null
   const existing = beat.graceGroup?.beats ?? []
@@ -459,13 +477,15 @@ export function graceTypeFor(beat, count = 1) {
   // alphaTab plays a single grace note as a 32nd, a pair as 64ths, and longer groups as 128ths.
   const duration = size * durationTicks(size === 1 ? Duration.ThirtySecond
     : size === 2 ? Duration.SixtyFourth : Duration.OneHundredTwentyEighth)
-  const donor = type === GraceType.BeforeBeat ? first.previousBeat : beat
+  const donor = type === GraceType.BeforeBeat ? first!.previousBeat : beat
   if (!donor) return null
   const available = donor.playbackDuration + existing.reduce((sum, grace) => sum + grace.playbackDuration, 0)
   return duration < available ? type : null
 }
 
-export function insertGraceNotes(note, pitches) {
+export type PitchEntry = { pitch: number, mode?: model.NoteAccidentalMode }
+
+export function insertGraceNotes(note: model.Note, pitches: PitchEntry[]): NoteAddress | null {
   const beat = note.beat
   const type = graceTypeFor(beat, pitches.length)
   if (type === null || pitches.some(({ pitch }) => !Number.isInteger(pitch) || pitch < 0 || pitch > 127)) return null
@@ -484,14 +504,14 @@ export function insertGraceNotes(note, pitches) {
   return address
 }
 
-export function canEnterNote(beat, pitch, duration, dots = 0) {
+export function canEnterNote(beat: model.Beat | null | undefined, pitch: number, duration: model.Duration, dots = 0): boolean {
   return canPlaceNote(beat) && pitch >= 0 && pitch <= 127
     && !beat.notes.some(note => writtenPitch(note) === pitch)
     && (beat.isRest ? canEnterDuration(beat, duration, dots)
       : (beat.duration === duration && beat.dots === dots) || canChangeDuration(beat, duration, dots))
 }
 
-export function enterNotes(beat, notes, duration, dots) {
+export function enterNotes(beat: model.Beat, notes: PitchEntry[], duration: model.Duration, dots: number): NoteAddress | null {
   if (!notes.length || new Set(notes.map(({ pitch }) => pitch)).size !== notes.length
     || !notes.every(({ pitch }) => canEnterNote(beat, pitch, duration, dots))) return null
   changeDuration(beat, duration, dots)
@@ -500,7 +520,7 @@ export function enterNotes(beat, notes, duration, dots) {
   return noteAddress(beat.notes[first])
 }
 
-export function placeNote(beat, step, fraction = 0) {
+export function placeNote(beat: model.Beat | null | undefined, step: number, fraction = 0): NoteAddress | null {
   if (!canPlaceNote(beat)) return null
   const pitch = pitchAtStep(beat, step)
   if (pitch < 0 || pitch > 127 || beat.notes.some(note => writtenPitch(note) === pitch)) return null
@@ -517,7 +537,7 @@ export function placeNote(beat, step, fraction = 0) {
   const grid = durationTicks(Math.max(Duration.Quarter, meter))
   const offset = Math.min(Math.ceil(total / grid) - 1, Math.max(0, Math.floor(fraction * total / grid))) * grid
   const duration = restDurations.find(value => durationTicks(value) <= Math.min(grid, total - offset))
-  const remaining = total - offset - durationTicks(duration)
+  const remaining = total - offset - durationTicks(duration!)
   const before = makeRests(offset, Duration.Whole, beat)
   // Keep the original beat and its markings at the original onset.
   const target = before.length ? new Beat() : beat
@@ -531,7 +551,7 @@ export function placeNote(beat, step, fraction = 0) {
     beat.overrideDisplayDuration = undefined
     replacement[0] = beat
   }
-  target.duration = duration
+  target.duration = duration!
   target.dots = 0
   target.overrideDisplayDuration = undefined
   target.ottava = beat.ottava
@@ -542,22 +562,22 @@ export function placeNote(beat, step, fraction = 0) {
   return [...address, note.index]
 }
 
-export function canRemoveNote(note) {
+export function canRemoveNote(note: model.Note): boolean {
   return canChangePitch(note, 0) && !note.beat.graceGroup
     && !noteLinks.some(([link]) => note[link])
 }
 
-export function removeNote(note) {
+export function removeNote(note: model.Note): boolean {
   if (!canRemoveNote(note)) return false
   note.beat.removeNote(note)
   return true
 }
 
-export function cycleClef(bar) {
-  return bar && setClef(bar, clefs[(clefs.indexOf(bar.clef) + 1) % clefs.length])
+export function cycleClef(bar: model.Bar | null | undefined): boolean {
+  return !!bar && setClef(bar, clefs[(clefs.indexOf(bar.clef) + 1) % clefs.length])
 }
 
-export function setClef(bar, clef) {
+export function setClef(bar: model.Bar | null | undefined, clef: model.Clef): boolean {
   if (!bar || !supportsPitchedNotes(bar) || !clefs.includes(clef) || bar.clef === clef) return false
   const original = bar.clef
   for (const next of bar.staff.bars.slice(bar.index)) {
@@ -567,7 +587,7 @@ export function setClef(bar, clef) {
   return true
 }
 
-export function setKeySignature(bar, signature, type) {
+export function setKeySignature(bar: model.Bar | null | undefined, signature: number, type: model.KeySignatureType): boolean {
   if (!bar || !supportsPitchedNotes(bar) || !Number.isInteger(signature) || Math.abs(signature) > 7
     || (type !== KeySignatureType.Major && type !== KeySignatureType.Minor)) return false
   const { keySignature, keySignatureType, index } = bar
@@ -585,7 +605,7 @@ export function setKeySignature(bar, signature, type) {
   return true
 }
 
-export function cycleMeter(score, start) {
+export function cycleMeter(score: model.Score, start: number): boolean {
   const first = score.masterBars[start]
   if (!first) return false
   const index = meters.findIndex(([count, denominator]) =>
@@ -594,12 +614,12 @@ export function cycleMeter(score, start) {
     .some(([count, denominator]) => setMeter(score, start, count, denominator))
 }
 
-function meterChanges(score, start, count, denominator) {
+function meterChanges(score: model.Score, start: number, count: number, denominator: number) {
   const first = score.masterBars[start]
   if (!first || !meters.some(([n, d]) => n === count && d === denominator)
     || (first.timeSignatureNumerator === count && first.timeSignatureDenominator === denominator)) return null
   const capacity = count * durationTicks(denominator)
-  const changes = []
+  const changes: { measure: model.MasterBar, voice: model.Voice, keep: number, used: number }[] = []
   for (const measure of score.masterBars.slice(start)) {
     if (measure.timeSignatureNumerator !== first.timeSignatureNumerator
       || measure.timeSignatureDenominator !== first.timeSignatureDenominator) break
@@ -622,11 +642,11 @@ function meterChanges(score, start, count, denominator) {
   return changes.length ? changes : null
 }
 
-export function canSetMeter(score, start, count, denominator) {
+export function canSetMeter(score: model.Score, start: number, count: number, denominator: number): boolean {
   return meterChanges(score, start, count, denominator) !== null
 }
 
-export function setMeter(score, start, count, denominator) {
+export function setMeter(score: model.Score, start: number, count: number, denominator: number): boolean {
   const changes = meterChanges(score, start, count, denominator)
   if (!changes) return false
   for (const { measure, voice, keep, used } of changes) {
@@ -640,19 +660,19 @@ export function setMeter(score, start, count, denominator) {
   return true
 }
 
-export function setScoreText(beat, value) {
+export function setScoreText(beat: model.Beat | null | undefined, value: string): boolean {
   const text = value.trim() ? value : null
   if (!beat || beat.text === text) return false
   beat.text = text
   return true
 }
 
-export function isLyricBeat(beat) {
+export function isLyricBeat(beat: model.Beat | null | undefined): boolean {
   return Boolean(beat && !beat.isEmpty && !beat.isRest && beat.graceType === GraceType.None)
 }
 
-export function setLyric(beat, value) {
-  if (!isLyricBeat(beat) && !beat?.lyrics?.[0]) return false
+export function setLyric(beat: model.Beat | null | undefined, value: string): boolean {
+  if (!beat || (!isLyricBeat(beat) && !beat.lyrics?.[0])) return false
   const syllable = value.trim()
   if ((beat.lyrics?.[0] ?? "") === syllable) return false
   const lyrics = [...beat.lyrics ?? []]
@@ -661,18 +681,40 @@ export function setLyric(beat, value) {
   return true
 }
 
-export function setHeading(score, field, value) {
+export function setHeading(score: model.Score, field: string, value: string): boolean {
   const heading = value.trim()
   if ((field !== "title" && field !== "subTitle") || score[field] === heading) return false
   score[field] = heading
   return true
 }
 
-export function setTempo(measure, bpm) {
+export function setTempo(measure: model.MasterBar, bpm: number): boolean {
   if (!Number.isInteger(bpm) || bpm < 20 || bpm > 300) return false
   const marking = measure.tempoAutomations.find(a => a.ratioPosition === 0)
   if (marking?.value === bpm) return false
   if (marking) marking.value = bpm
   else measure.tempoAutomations.unshift(Automation.buildTempoAutomation(false, 0, bpm, 2))
   return true
+}
+
+export const sameAddress = (left: readonly number[] | null | undefined, right: readonly number[] | null | undefined) => left?.join("/") === right?.join("/")
+
+// Replaces the visible labels of an untouched localized example with the translation seed.
+export function localizeLabels(score: model.Score, text: string | null) {
+  if (!text) return
+  try {
+    const { source = {}, labels = {} } = JSON.parse(text)
+    if (typeof labels.title === "string" && score.title === source.title) score.title = labels.title
+    if (typeof labels.subTitle === "string" && score.subTitle === source.subTitle) score.subTitle = labels.subTitle
+    if (typeof labels.artist === "string" && score.artist === source.artist) score.artist = labels.artist
+    for (const [index, label] of (labels.tracks ?? []).entries()) {
+      const track = score.tracks[index]
+      const original = source.tracks?.[index]
+      if (!track || !original || !label) continue
+      if (typeof label.name === "string" && track.name === original.name) track.name = label.name
+      if (typeof label.shortName === "string" && track.shortName === original.shortName) track.shortName = label.shortName
+    }
+  } catch {
+    // A malformed optional seed must not prevent the score itself from loading.
+  }
 }

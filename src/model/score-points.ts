@@ -1,9 +1,38 @@
-import { beatAddress, canPlaceNote, isLyricBeat, isPitchedStaff, noteAddress } from "./score-model.js"
-import { playbackInstrumentName } from "./score-instruments.js"
-import { sameVoice } from "./score-passage.js"
-import { model } from "./vendor/alphaTab.core.min.mjs"
+import { beatAddress, canPlaceNote, isLyricBeat, isPitchedStaff, noteAddress } from "./score-model"
+import type { BeatAddress, NoteAddress } from "./score-model"
+import { playbackInstrumentName } from "./score-instruments"
+import { sameVoice } from "./score-passage"
+import { model } from "../assets/alphatab-core"
+import type { rendering } from "../assets/alphatab-core"
 
-export function sheetPosition(sheet, clientX, clientY) {
+export type Rect = { x: number, y: number, w: number, h: number }
+export type Position = { x: number, y: number }
+
+/** An interactive region of the rendered score. Which fields are set depends on `kind`. */
+export type ScorePoint = {
+  kind: string
+  rect: Rect
+  address?: BeatAddress | NoteAddress
+  onNotesX?: number
+  staff?: Rect
+  beatBounds?: rendering.BeatBounds
+  pitchDrag?: boolean
+  trackIndex?: number
+  bar?: [track: number, staff: number, bar: number]
+  measure?: number
+  glyph?: Element
+  prefix?: string
+  digits?: string
+  suffix?: string
+  printed?: boolean
+  headingAction?: boolean
+}
+
+export type TrackLabel = { name: string, trackIndex: number, x: number, y: number }
+// Measure edges and vertical extent of the rows that an end-bar drag would add.
+export type AppendArea = { y: number, h: number, dy: number, edges: number[] }
+
+export function sheetPosition(sheet: HTMLElement, clientX: number, clientY: number): Position {
   const rect = sheet.getBoundingClientRect()
   return {
     x: (clientX - rect.left) * sheet.offsetWidth / rect.width,
@@ -11,34 +40,34 @@ export function sheetPosition(sheet, clientX, clientY) {
   }
 }
 
-export function staffStep(staff, y) {
+export function staffStep(staff: Rect, y: number): number {
   return Math.round((y - staff.y) / (staff.h / 8))
 }
 
-export function appendButtonRect(sheetWidth, staff) {
+export function appendButtonRect(sheetWidth: number, staff: Rect): Rect {
   const x = staff.x + staff.w + 1
   return { x, y: staff.y, w: Math.max(0, Math.min(48, sheetWidth - x)), h: staff.h }
 }
 
-function glyphRect(sheet, glyph) {
+function glyphRect(sheet: HTMLElement, glyph: Element): Rect {
   const box = glyph.getBoundingClientRect()
   const start = sheetPosition(sheet, box.left, box.top)
   const end = sheetPosition(sheet, box.right, box.bottom)
   return { ...start, w: end.x - start.x, h: end.y - start.y }
 }
 
-export function trackLabelPositions(score, systems, braces = [], editing = false, locale = "") {
+export function trackLabelPositions(score: model.Score, systems: rendering.StaffSystemBounds[], braces: Pick<Rect, "x" | "y" | "h">[] = [], editing = false, locale = ""): TrackLabel[] {
   const { tracks, stylesheet } = score
   const { TrackNameMode, TrackNamePolicy } = model
   const policy = tracks.length === 1 ? stylesheet.singleTrackTrackNamePolicy : stylesheet.multiTrackTrackNamePolicy
-  const labels = []
-  const seen = new Set()
+  const labels: TrackLabel[] = []
+  const seen = new Set<number>()
   for (const [index, system] of systems.entries()) {
     const showNames = policy === TrackNamePolicy.AllSystems
       || (index === 0 && policy === TrackNamePolicy.FirstSystem)
     if (!showNames && (!editing || seen.size === tracks.length)) break
     const mode = index === 0 ? stylesheet.firstSystemTrackNameMode : stylesheet.otherSystemsTrackNameMode
-    const stavesByTrack = new Map()
+    const stavesByTrack = new Map<model.Track, { left: number, top: number, bottom: number }>()
     for (const { bar, realBounds: { x, y, h } } of system.bars[0].bars) {
       const track = bar.staff.track
       const group = stavesByTrack.get(track)
@@ -62,7 +91,7 @@ export function trackLabelPositions(score, systems, braces = [], editing = false
   return labels
 }
 
-export function trackLabelPoints(sheet, labels) {
+export function trackLabelPoints(sheet: HTMLElement, labels: Iterable<HTMLElement>): ScorePoint[] {
   return Array.from(labels, label => {
     const rect = glyphRect(sheet, label)
     const y = Math.max(0, rect.y)
@@ -74,19 +103,19 @@ export function trackLabelPoints(sheet, labels) {
   }).filter(({ rect }) => rect.w > 0 && rect.h > 0)
 }
 
-export function scoreBraces(sheet, notation) {
+export function scoreBraces(sheet: HTMLElement, notation: Element): Rect[] {
   return Array.from(notation.querySelectorAll("svg text"))
     .filter(glyph => glyph.textContent === "\ue000")
     .map(glyph => glyphRect(sheet, glyph))
 }
 
-export function endBarStrokes(sheet, notation, button, span) {
+export function endBarStrokes(sheet: HTMLElement, notation: Element, button: Rect, span: number): SVGRectElement[] {
   const box = sheet.getBoundingClientRect()
   const scaleX = box.width / sheet.offsetWidth
   const scaleY = box.height / sheet.offsetHeight
   const edge = box.left + (button.x - 1) * scaleX
   const middle = box.top + (button.y + button.h / 2) * scaleY
-  const strokes = []
+  const strokes: SVGRectElement[] = []
   for (const svg of notation.querySelectorAll("svg")) {
     const { top, bottom } = svg.getBoundingClientRect()
     if (middle < top || middle > bottom) continue
@@ -102,7 +131,7 @@ export function endBarStrokes(sheet, notation, button, span) {
   return strokes
 }
 
-function coveredMeasures(areas, point) {
+function coveredMeasures(areas: AppendArea[], point: Position): number {
   let count = 0
   for (const { y, h, dy, edges } of areas) {
     const top = y + dy
@@ -117,11 +146,11 @@ function coveredMeasures(areas, point) {
   return count
 }
 
-export function endBarDragDelta(point, systems, areas = []) {
+export function endBarDragDelta(point: Position, systems: rendering.StaffSystemBounds[], areas: AppendArea[] = []): number {
   const added = coveredMeasures(areas, point)
   if (added) return added
-  const lastRow = systems.at(-1)
-  const lastBar = lastRow.bars.at(-1)
+  const lastRow = systems.at(-1)!
+  const lastBar = lastRow.bars.at(-1)!
   const count = lastBar.index + 1
   if (point.y >= lastRow.realBounds.y + lastRow.realBounds.h) return 0
   let rowIndex = systems.length - 1
@@ -135,17 +164,17 @@ export function endBarDragDelta(point, systems, areas = []) {
 
   // Snap to the nearest measure boundary in score order, even for irregular or wrapped bars.
   const next = row.bars.find(({ realBounds: bar }) => point.x < bar.x + bar.w / 2)
-  const keep = next?.index ?? row.bars.at(-1).index + 1
+  const keep = next?.index ?? row.bars.at(-1)!.index + 1
   return Math.max(1, keep) - count
 }
 
-export function beatPointAt(points, origin, { x, y }) {
-  let best
+export function beatPointAt(points: Iterable<ScorePoint>, origin: BeatAddress, { x, y }: Position): ScorePoint | undefined {
+  let best: ScorePoint | undefined
   let rowDistance = Infinity
   let beatDistance = Infinity
   for (const point of points) {
-    if (!point.beatBounds || !sameVoice(point.address, origin)) continue
-    const { rect, staff } = point
+    if (!point.beatBounds || !sameVoice(point.address!, origin)) continue
+    const { rect, staff } = point as ScorePoint & { staff: Rect }
     const row = Math.max(staff.y - y, y - staff.y - staff.h, 0)
     const beat = Math.max(rect.x - x, x - rect.x - rect.w, 0)
     if (row > rowDistance || (row === rowDistance && beat >= beatDistance)) continue
@@ -156,11 +185,11 @@ export function beatPointAt(points, origin, { x, y }) {
   return best
 }
 
-export function colorNote(sheet, groups, rect) {
-  let best
+export function colorNote(sheet: HTMLElement, groups: Iterable<Element>, rect: Rect): void {
+  let best: SVGTextElement | undefined
   let distance = Infinity
   for (const group of groups) {
-    for (const glyph of group.querySelectorAll("text")) {
+    for (const glyph of group.querySelectorAll<SVGTextElement>("text")) {
       const matrix = glyph.getScreenCTM()
       if (!matrix) continue
       const x = glyph.x.baseVal[0]?.value ?? 0
@@ -178,12 +207,12 @@ export function colorNote(sheet, groups, rect) {
   best?.classList.add("selected-ink")
 }
 
-export function scorePoints(sheet, bounds, notation) {
+export function scorePoints(sheet: HTMLElement, bounds: rendering.BoundsLookup, notation: Element): ScorePoint[] {
   const systems = bounds.staffSystems
   const measures = systems.flatMap(system => system.bars)
   const staves = measures.flatMap(measure => measure.bars)
-  const points = []
-  const directions = new Map()
+  const points: ScorePoint[] = []
+  const directions = new Map<number, { beat: model.Beat, staff: Rect, top: number, bottom: number }>()
   for (const system of systems) {
     const { y, h } = system.realBounds
     const firstMeasure = system.bars[0]?.bars ?? []
@@ -197,7 +226,7 @@ export function scorePoints(sheet, bounds, notation) {
         const bottom = Math.min(sheet.offsetHeight, next ? (staff.y + staff.h + next.y) / 2 : y + h)
         const below = staff.y + staff.h + 8
         const lyricTop = lyricStaves[index] ? bottom - Math.min(20, Math.max(0, bottom - below) / 2) : bottom
-        const lanes = [["text", top, staff.y - 8], ["dynamics", below, lyricTop]]
+        const lanes: [string, number, number][] = [["text", top, staff.y - 8], ["dynamics", below, lyricTop]]
         for (const { beat, onNotesX, realBounds: { x, w } } of beats) {
           if (beat.isEmpty || beat.graceType || w <= 0) continue
           const address = beatAddress(beat)
@@ -242,16 +271,16 @@ export function scorePoints(sheet, bounds, notation) {
     }
   }
 
-  const signatures = new Map()
-  const keys = new Map()
-  for (const glyph of notation.querySelectorAll("svg text")) {
+  const signatures = new Map<rendering.BarBounds, Rect>()
+  const keys = new Map<rendering.BarBounds, Rect>()
+  for (const glyph of notation.querySelectorAll<SVGTextElement>("svg text")) {
     if (glyph.parentElement?.matches("g:is(.ww-direction-text, .ww-direction-dynamics, .ww-direction-lyric, .ww-heading-title, .ww-heading-subtitle)")) continue
-    const text = glyph.textContent
-    const symbol = text.trim().codePointAt(0)
+    const text = glyph.textContent ?? ""
+    const symbol = text.trim().codePointAt(0)!
     const clef = symbol >= 0xe050 && symbol <= 0xe067
     const meter = symbol >= 0xe080 && symbol <= 0xe08b
     const key = symbol >= 0xe260 && symbol <= 0xe262
-      && !/\bb\d+\b/.test(glyph.closest("g[class]")?.getAttribute("class"))
+      && !/\bb\d+\b/.test(glyph.closest("g[class]")?.getAttribute("class") ?? "")
     const tempo = /^(\s*=\s*)(\d+(?:\.\d+)?)(\s*)$/.exec(text)
     if (!clef && !meter && !key && !tempo) continue
     const screen = glyph.getBoundingClientRect()
@@ -268,10 +297,10 @@ export function scorePoints(sheet, bounds, notation) {
     if (tempo) {
       const measure = measures.find(({ staffSystemBounds, realBounds }) =>
         x >= realBounds.x && x <= realBounds.x + realBounds.w
-        && y >= staffSystemBounds.realBounds.y - 8 && y <= realBounds.y + realBounds.h)
+        && y >= staffSystemBounds!.realBounds.y - 8 && y <= realBounds.y + realBounds.h)
       const [, prefix, digits, suffix] = tempo
       const master = measure?.bars[0]?.bar.masterBar
-      if (!master?.tempoAutomations.some(marking => marking.ratioPosition === 0 && marking.value === Number(digits))) continue
+      if (!measure || !master?.tempoAutomations.some(marking => marking.ratioPosition === 0 && marking.value === Number(digits))) continue
       const matrix = glyph.getScreenCTM()
       if (!matrix) continue
       const left = glyph.getStartPositionOfChar(prefix.length).matrixTransform(matrix)
@@ -288,7 +317,7 @@ export function scorePoints(sheet, bounds, notation) {
       x >= b.x && x <= b.x + b.w && y >= b.y - 10 && y <= b.y + b.h + 10)
     if (!staff) continue
     const { bar } = staff
-    const address = [bar.staff.track.index, bar.staff.index, bar.index]
+    const address: [number, number, number] = [bar.staff.track.index, bar.staff.index, bar.index]
     if (clef && isPitchedStaff(bar)) {
       // The SVG font box can extend into the adjacent staff, especially on a grand staff.
       const top = Math.max(rect.y, staff.realBounds.y)
@@ -322,7 +351,7 @@ export function scorePoints(sheet, bounds, notation) {
       }
     }
   }
-  for (const group of notation.querySelectorAll("svg :is(.ww-direction-text, .ww-direction-dynamics, .ww-direction-lyric)")) {
+  for (const group of notation.querySelectorAll<SVGGElement>("svg :is(.ww-direction-text, .ww-direction-dynamics, .ww-direction-lyric)")) {
     const id = Number([...group.classList].find(name => name.startsWith("ww-beat-"))?.slice(8))
     const anchor = directions.get(id)
     if (!anchor) continue
@@ -340,12 +369,12 @@ export function scorePoints(sheet, bounds, notation) {
       rect: { ...rect, y, h: endY - y },
     })
   }
-  const headingActions = []
+  const headingActions: string[] = []
   let headingY = 0
   for (const kind of ["title", "subtitle"]) {
     const glyph = notation.querySelector?.(`svg .ww-heading-${kind}`)
     const rect = glyph && glyphRect(sheet, glyph)
-    if (rect?.w > 0 && rect.h > 0) {
+    if (glyph && rect && rect.w > 0 && rect.h > 0) {
       headingY = Math.max(headingY, rect.y + rect.h + 2)
       points.push({ kind, glyph, rect })
     } else if (staves.length) {

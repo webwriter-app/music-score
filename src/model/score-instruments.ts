@@ -1,11 +1,12 @@
-import { model } from "./vendor/alphaTab.core.min.mjs"
-import { localeData } from "./locale-data.js"
+import { model } from "../assets/alphatab-core"
+import { localeData } from "../assets/locale-data"
 
-function translatedInstrument(name, locale) {
+function translatedInstrument(name: string, locale: string): string {
   const exact = Object.keys(localeData).find(tag => tag.toLowerCase() === locale.toLowerCase())
   const base = locale.split("-")[0].toLowerCase()
   const primary = Object.keys(localeData).find(tag => tag.toLowerCase() === base)
-  return localeData[exact ?? primary]?.instruments?.[name] ?? name
+  const entry = exact ?? primary
+  return (entry ? localeData[entry]?.instruments?.[name] : undefined) ?? name
 }
 
 // General MIDI program order, with zero-based numbers as stored by alphaTab.
@@ -26,26 +27,26 @@ const programs = [
   "Sitar", "Banjo", "Shamisen", "Koto", "Kalimba", "Bagpipe", "Fiddle", "Shanai",
   "Tinkle Bell", "Agogo", "Steel Drums", "Woodblock", "Taiko Drum", "Melodic Tom", "Synth Drum", "Reverse Cymbal",
   "Guitar Fret Noise", "Breath Noise", "Seashore", "Bird Tweet", "Telephone Ring", "Helicopter", "Applause", "Gunshot",
-].map((name, program) => [program, name])
+].map((name, program): [number, string] => [program, name])
 
-const kits = [[0, "Standard Kit"], [8, "Room Kit"], [32, "Jazz Kit"], [40, "Brush Kit"]]
+const kits: [number, string][] = [[0, "Standard Kit"], [8, "Room Kit"], [32, "Jazz Kit"], [40, "Brush Kit"]]
 const drumChannel = 9
 const drumBank = 128
-const channelFields = ["primaryChannel", "secondaryChannel"]
+const channelFields = ["primaryChannel", "secondaryChannel"] as const
 
-export function playbackInstruments(track, locale = "") {
+export function playbackInstruments(track: model.Track, locale = ""): [number, string][] {
   const items = track.isPercussion ? kits : programs
   return items.map(([id, name]) => [id, translatedInstrument(name, locale)])
 }
 
-export function playbackInstrumentName(track, locale = "") {
+export function playbackInstrumentName(track: model.Track, locale = ""): string {
   const { program } = track.playbackInfo
   const name = track.isPercussion ? (kits.find(([id]) => id === program) ?? kits[0])[1]
     : programs[program]?.[1] ?? `GM ${program + 1}`
   return translatedInstrument(name, locale)
 }
 
-export function setPlaybackInstrument(track, program) {
+export function setPlaybackInstrument(track: model.Track, program: number): boolean {
   if (!playbackInstruments(track).some(([id]) => id === program)) return false
   const { playbackInfo } = track
   const bank = track.isPercussion ? drumBank : 0

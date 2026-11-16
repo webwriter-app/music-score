@@ -1,4 +1,10 @@
-export const localeData = {
+export type LocaleEntry = {
+  messages?: Record<string, string>
+  instruments?: Record<string, string>
+  options?: Record<string, string>
+}
+
+export const localeData: Record<string, LocaleEntry> = {
   "ar": {
     "messages": {
       "importScore": "استيراد MusicXML",

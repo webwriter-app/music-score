@@ -1,49 +1,66 @@
-import { midi, model } from "./vendor/alphaTab.core.min.mjs"
-import { beatAddress, findBeat, isAvailableRest, readScore, restDurations, serializeScore } from "./score-model.js"
+import { midi, model } from "../assets/alphatab-core"
+import { beatAddress, findBeat, isAvailableRest, readScore, restDurations, serializeScore } from "./score-model"
+import type { BeatAddress } from "./score-model"
+
+// Any address of a beat or of a note in a beat; only the leading numbers are read.
+type Address = readonly number[]
+
+export type Passage = { first: BeatAddress, last: BeatAddress, note?: number }
+
+// The serialized score is plain JSON with lower-case field names.
+type RawNote = { id: number, [field: string]: number | boolean | undefined }
+type RawBeat = { id?: number, duration?: number, notes?: RawNote[], overridedisplayduration?: number, [field: string]: unknown }
+type RawScore = { score: { tracks: { staves: { bars: { voices: { beats: RawBeat[] }[] }[] }[] }[] } }
+type Fragment = { format: string, staff: string, beats: { ticks: number, data: RawBeat }[] }
+type Slot = { beat: model.Beat, start: number, end: number }
+type Link = [model.Note, model.Note]
+type LinkKind = "tie" | "slur"
 
 const format = "webwriter-score-passage-1"
 const maxLength = 8 * 1024 * 1024
 const whole = new midi.MidiFile().division * 4
 const { AccentuationType, BeatBeamingMode, CrescendoType, Duration, Fermata, FermataType, GraceType, NoteOrnament } = model
-const linkFields = [
+const linkFields: string[] = [
   "tieoriginnoteid", "tiedestinationnoteid", "sluroriginnoteid", "slurdestinationnoteid",
   "hammerpulloriginnoteid", "hammerpulldestinationnoteid", "slideoriginnoteid", "slidetargetnoteid",
 ]
-const noteLinkProperties = {
+const noteLinkProperties: Record<LinkKind, ["tieOrigin" | "slurOrigin", "tieDestination" | "slurDestination", "isTieDestination" | "isSlurDestination"]> = {
   tie: ["tieOrigin", "tieDestination", "isTieDestination"],
   slur: ["slurOrigin", "slurDestination", "isSlurDestination"],
 }
 
-export function sameVoice(a, b) {
+export function sameVoice(a: Address, b: Address): boolean {
   return a[0] === b[0] && a[1] === b[1] && a[3] === b[3]
 }
 
-const compare = (a, b) => a[2] - b[2] || a[4] - b[4]
+const compare = (a: Address, b: Address) => a[2] - b[2] || a[4] - b[4]
 
-export function passageBetween(a, b) {
+export function passageBetween(a: BeatAddress, b: BeatAddress): Passage {
   return compare(a, b) <= 0 ? { first: a, last: b } : { first: b, last: a }
 }
 
-export function inPassage(address, passage) {
+export function inPassage(address: Address, passage: Passage): boolean {
   return sameVoice(address, passage.first)
     && compare(address, passage.first) >= 0 && compare(address, passage.last) <= 0
 }
 
-function isBeamable(beat) {
-  return beat && !beat.isRest && !beat.deadSlapped && beat.duration >= Duration.Eighth && beat.graceType === GraceType.None
+function isBeamable(beat: model.Beat | undefined): boolean {
+  return !!beat && !beat.isRest && !beat.deadSlapped && beat.duration >= Duration.Eighth && beat.graceType === GraceType.None
 }
 
-function canJoinBeam(left, right) {
-  return isBeamable(left) && isBeamable(right) && left.tupletGroup === right.tupletGroup
-    && left.displayStart + left.displayDuration === right.displayStart
+function canJoinBeam(left: model.Beat | undefined, right: model.Beat | undefined): boolean {
+  return isBeamable(left) && isBeamable(right) && left!.tupletGroup === right!.tupletGroup
+    && left!.displayStart + left!.displayDuration === right!.displayStart
 }
 
-export function passageBeamLinks(score, passage) {
+export type BeamLinks = { joins: model.Beat[], edges: model.Beat[] }
+
+export function passageBeamLinks(score: model.Score, passage: Passage | null | undefined): BeamLinks | null {
   const first = passage && findBeat(score, passage.first)
   const last = passage && findBeat(score, passage.last)
   if (!first || !last || !sameVoice(passage.first, passage.last)) return null
-  const joins = []
-  const edges = []
+  const joins: model.Beat[] = []
+  const edges: model.Beat[] = []
   const { staff } = first.voice.bar
   for (const bar of staff.bars.slice(first.voice.bar.index, last.voice.bar.index + 1)) {
     const beats = bar.voices[first.voice.index]?.beats
@@ -61,7 +78,7 @@ export function passageBeamLinks(score, passage) {
   return joins.length ? { joins, edges } : null
 }
 
-export function setPassageBeaming({ joins, edges }, mode) {
+export function setPassageBeaming({ joins, edges }: BeamLinks, mode: model.BeatBeamingMode): boolean {
   let changed = false
   for (const beat of joins) {
     if (beat.beamingMode === mode) continue
@@ -78,7 +95,7 @@ export function setPassageBeaming({ joins, edges }, mode) {
   return changed
 }
 
-function timeline(score, [track, staff, , voice], from = 0, to = score.masterBars.length) {
+function timeline(score: model.Score, [track, staff, , voice]: Address, from = 0, to = score.masterBars.length) {
   let barStart = score.masterBars.slice(0, from).reduce((time, measure) => time + measure.calculateDuration(), 0)
   return score.masterBars.slice(from, to).map((measure, index) => {
     const start = barStart
@@ -92,32 +109,34 @@ function timeline(score, [track, staff, , voice], from = 0, to = score.masterBar
   })
 }
 
-function selectedSlots(score, { first, last }) {
+function selectedSlots(score: model.Score, { first, last }: Passage): Slot[] {
   if (!sameVoice(first, last) || !findBeat(score, first) || !findBeat(score, last)) return []
   return timeline(score, first, first[2], last[2] + 1).flatMap(bar => bar.slots)
     .filter(({ beat }) => inPassage(beatAddress(beat), { first, last }))
 }
 
-export function passageHairpinChanges(score, passage) {
+export type PassageChange = { id: string, direction: model.CrescendoType, apply: () => boolean }
+
+export function passageHairpinChanges(score: model.Score, passage: Passage | null | undefined): PassageChange[] {
   if (!passage) return []
   const beats = selectedSlots(score, passage).map(({ beat }) => beat)
     .filter(beat => !beat.isEmpty && beat.graceType === GraceType.None)
-  const choices = []
-  const add = (id, direction, targets) => choices.push({ id, direction, apply: () => {
+  const choices: PassageChange[] = []
+  const add = (id: string, direction: model.CrescendoType, targets: Iterable<model.Beat>) => choices.push({ id, direction, apply: () => {
     for (const beat of targets) beat.crescendo = direction
     return true
   } })
   if (beats.length > 1 && beats.some(beat => !beat.isRest)) {
-    for (const [id, direction] of [["crescendo", CrescendoType.Crescendo], ["diminuendo", CrescendoType.Decrescendo]]) {
+    for (const [id, direction] of [["crescendo", CrescendoType.Crescendo], ["diminuendo", CrescendoType.Decrescendo]] as const) {
       const targets = beats.filter(beat => beat.crescendo !== direction)
       if (targets.length) add(id, direction, targets)
     }
   }
-  const marked = new Set()
+  const marked = new Set<model.Beat>()
   for (const beat of beats) {
     if (!beat.crescendo || marked.has(beat)) continue
     marked.add(beat)
-    for (const edge of ["previousBeat", "nextBeat"]) {
+    for (const edge of ["previousBeat", "nextBeat"] as const) {
       for (let neighbor = beat[edge]; neighbor && sameVoice(beatAddress(beat), beatAddress(neighbor)); neighbor = neighbor[edge]) {
         if (neighbor.graceType !== GraceType.None) continue
         if (neighbor.crescendo !== beat.crescendo) break
@@ -129,19 +148,21 @@ export function passageHairpinChanges(score, passage) {
   return choices
 }
 
-function selectedNotes(slots, index) {
+function selectedNotes(slots: Slot[], index?: number): model.Note[] {
   return slots.flatMap(({ beat }) => index === undefined ? beat.notes : beat.notes.slice(index, index + 1))
 }
 
-function canOrnament(note) {
+function canOrnament(note: model.Note): boolean {
   return (note.isPiano || note.isStringed) && !note.isTieDestination && !note.hasBend
 }
 
-function trillPitch(note) {
+function trillPitch(note: model.Note): number {
   return note.calculateRealValue(false, false) + 2
 }
 
-const noteMarks = [
+type NoteMark = [name: string, has: (note: model.Note) => boolean, set: (note: model.Note, apply: boolean) => void, can?: (note: model.Note) => boolean]
+
+const noteMarks: NoteMark[] = [
   ["staccato", note => note.isStaccato, (note, apply) => { note.isStaccato = apply }],
   ["tenuto", note => note.accentuated === AccentuationType.Tenuto, (note, apply) => {
     note.accentuated = apply ? AccentuationType.Tenuto : AccentuationType.None
@@ -166,11 +187,13 @@ const noteMarks = [
   }, canOrnament],
 ]
 
-export function passageMarkChanges(score, passage) {
+export type MarkChange = { mark: string, remove: boolean, apply: () => boolean }
+
+export function passageMarkChanges(score: model.Score, passage: Passage | null | undefined): MarkChange[] {
   if (!passage) return []
   const notes = selectedNotes(selectedSlots(score, passage), passage.note)
   if (!notes.length) return []
-  const changes = []
+  const changes: MarkChange[] = []
   for (const [mark, hasMark, setMark, canApply] of noteMarks) {
     const unmarked = notes.filter(note => !hasMark(note) && (!canApply || canApply(note)))
     const marked = notes.filter(hasMark)
@@ -185,12 +208,12 @@ export function passageMarkChanges(score, passage) {
   }
 
   // Fermatas live on the master measure, so a marking applies to the entire onset.
-  const marked = []
-  const unmarked = []
+  const marked: { master: model.MasterBar, offset: number }[] = []
+  const unmarked: { master: model.MasterBar, offset: number }[] = []
   for (const beat of new Set(notes.map(note => note.beat))) {
     const master = beat.voice.bar.masterBar
     if (master.getFermata(beat)) {
-      const offset = master.fermata.has(beat.playbackStart) ? beat.playbackStart : 0
+      const offset = master.fermata?.has(beat.playbackStart) ? beat.playbackStart : 0
       marked.push({ master, offset })
     } else if (beat.graceType === GraceType.None) unmarked.push({ master, offset: beat.playbackStart })
   }
@@ -212,14 +235,14 @@ export function passageMarkChanges(score, passage) {
   return changes
 }
 
-function matchingPitch(origin, destination) {
+function matchingPitch(origin: model.Note, destination: model.Note): boolean {
   return origin.realValue === destination.realValue && origin.isStringed === destination.isStringed
     && (!origin.isStringed || origin.string === destination.string && origin.fret === destination.fret)
 }
 
-function existingNoteLinks(notes, kind, includeOutside) {
+function existingNoteLinks(notes: Set<model.Note>, kind: LinkKind, includeOutside: boolean): Link[] {
   const [originKey, destinationKey] = noteLinkProperties[kind]
-  const pairs = new Map()
+  const pairs = new Map<model.Note, model.Note>()
   for (const note of notes) {
     const destination = note[destinationKey]
     if (destination && (includeOutside || notes.has(destination))) pairs.set(note, destination)
@@ -229,7 +252,9 @@ function existingNoteLinks(notes, kind, includeOutside) {
   return [...pairs]
 }
 
-export function passageNoteLinks(score, passage) {
+export type NoteLinks = Record<"tie" | "slur" | "untie" | "unslur", Link[]>
+
+export function passageNoteLinks(score: model.Score, passage: Passage | null | undefined): NoteLinks | null {
   if (!passage) return null
   const slots = selectedSlots(score, passage)
   if (!slots.length) return null
@@ -238,12 +263,12 @@ export function passageNoteLinks(score, passage) {
   const includeOutside = slots.length === 1
   const untie = existingNoteLinks(notes, "tie", includeOutside)
   const unslur = existingNoteLinks(notes, "slur", includeOutside)
-  const tie = []
-  const slur = []
+  const tie: Link[] = []
+  const slur: Link[] = []
   const beats = slots.filter(({ beat }) => beat.graceType === GraceType.None).map(slot => ({
     ...slot, notes: slot.beat.notes.filter(note => notes.has(note) && !note.isPercussion),
   }))
-  const used = new Set()
+  const used = new Set<model.Note>()
   for (let i = 1; i < beats.length; i++) {
     const before = beats[i - 1]
     const after = beats[i]
@@ -261,15 +286,15 @@ export function passageNoteLinks(score, passage) {
   const sounded = beats.filter(({ notes }) => notes.length)
   if (sounded.length >= 2) {
     // Use the top note at either end when a phrase begins or ends on a chord.
-    const top = ({ notes }) => notes.reduce((highest, note) => note.realValue > highest.realValue ? note : highest)
+    const top = ({ notes }: { notes: model.Note[] }) => notes.reduce((highest, note) => note.realValue > highest.realValue ? note : highest)
     const origin = top(sounded[0])
-    const destination = top(sounded.at(-1))
+    const destination = top(sounded.at(-1)!)
     if (!origin.slurDestination && !destination.slurOrigin && !destination.isSlurDestination) slur.push([origin, destination])
   }
   return { tie, slur, untie, unslur }
 }
 
-export function setPassageNoteLinks(pairs, kind, linked) {
+export function setPassageNoteLinks(pairs: Link[], kind: LinkKind, linked: boolean): boolean {
   const [originKey, destinationKey, flag] = noteLinkProperties[kind]
   for (const [origin, destination] of pairs) {
     origin[destinationKey] = linked ? destination : null
@@ -280,16 +305,18 @@ export function setPassageNoteLinks(pairs, kind, linked) {
   return pairs.length > 0
 }
 
-function rawVoice(raw, [track, staff, bar, voice]) {
+function rawVoice(raw: RawScore, [track, staff, bar, voice]: Address): RawBeat[] {
   return raw.score.tracks[track].staves[staff].bars[bar].voices[voice].beats
 }
 
-function staffSignature(staff) {
+function staffSignature(staff: model.Staff): string {
   return JSON.stringify([staff.isPercussion, staff.tuning, staff.capo, staff.transpositionPitch,
     staff.isPercussion ? staff.track.percussionArticulations : null])
 }
 
-function collect(score, raw, { first, last, note }) {
+type Entry = Slot & { data: RawBeat, notes: RawNote[] }
+
+function collect(score: model.Score, raw: RawScore, { first, last, note }: Passage): Entry[] | null {
   const slots = selectedSlots(score, { first, last })
   if (!slots.length) return null
   const entries = slots.map(({ beat, start, end }) => {
@@ -301,21 +328,24 @@ function collect(score, raw, { first, last, note }) {
   return entries
 }
 
-function selectedIds(entries) {
+function selectedIds(entries: Entry[]): Set<number> {
   return new Set(entries.flatMap(({ notes }) => notes.map(note => note.id)))
 }
 
-function remove(entries) {
+// Link fields hold note IDs.
+const linkId = (note: RawNote, field: string) => note[field] as number | undefined
+
+function remove(entries: Entry[]): boolean {
   const ids = selectedIds(entries)
   if (!ids.size || entries.some(({ beat, notes }) => beat.graceType || beat.graceGroup || notes.some(note =>
-    linkFields.some(field => note[field] !== undefined && !ids.has(note[field]))))) return false
+    linkFields.some(field => linkId(note, field) !== undefined && !ids.has(linkId(note, field)!))))) return false
   for (const { data, notes } of entries) {
     data.notes = (data.notes ?? []).filter(note => !notes.includes(note))
   }
   return true
 }
 
-function fragment(entries) {
+function fragment(entries: Entry[] | null): Fragment | null {
   if (!entries?.some(entry => entry.notes.length) || entries.some(({ beat, start, end }, index) =>
     beat.isEmpty || beat.graceType || beat.graceGroup || beat.hasTuplet || !Number.isInteger(end - start)
     || end <= start || (index > 0 && entries[index - 1].end !== start))) return null
@@ -327,7 +357,7 @@ function fragment(entries) {
       data: { ...data, notes: notes.map(note => {
         const copy = { ...note }
         for (const field of linkFields) {
-          if (copy[field] !== undefined && !ids.has(copy[field])) {
+          if (linkId(copy, field) !== undefined && !ids.has(linkId(copy, field)!)) {
             delete copy[field]
             if (field === "tieoriginnoteid") copy.istiedestination = false
             if (field === "sluroriginnoteid") copy.isslurdestination = false
@@ -339,25 +369,25 @@ function fragment(entries) {
   }
 }
 
-export function copyPassage(score, selection) {
+export function copyPassage(score: model.Score, selection: Passage): Fragment | null {
   const raw = JSON.parse(serializeScore(score))
   return fragment(collect(score, raw, selection))
 }
 
-export function readPassage(text) {
+export function readPassage(text: string | null | undefined): Fragment | null {
   if (!text || text.length > maxLength) return null
   try {
-    const data = JSON.parse(text)
+    const data: Partial<Fragment> | null = JSON.parse(text)
     if (data?.format === format && typeof data.staff === "string" && Array.isArray(data.beats)
       && data.beats.length && data.beats.every(entry => Number.isSafeInteger(entry?.ticks)
         && entry.ticks > 0 && Array.isArray(entry.data?.notes)
-        && entry.data.notes.every(note => Number.isSafeInteger(note?.id)))) return data
+        && entry.data.notes!.every(note => Number.isSafeInteger(note?.id)))) return data as Fragment
   } catch {}
   return null
 }
 
-function rests(ticks) {
-  const beats = []
+function rests(ticks: number): RawBeat[] | null {
+  const beats: RawBeat[] = []
   for (const duration of restDurations) {
     const length = whole / duration
     while (ticks >= length) {
@@ -368,7 +398,7 @@ function rests(ticks) {
   return ticks === 0 ? beats : null
 }
 
-function placedBeats(raw, source) {
+function placedBeats(raw: RawScore, source: Fragment) {
   // IDs identify rendered beats and tie/slur endpoints, so pasted music needs fresh IDs.
   let nextBeat = 0
   let nextNote = 0
@@ -377,24 +407,24 @@ function placedBeats(raw, source) {
       for (const bar of staff.bars) {
         for (const voice of bar.voices) {
           for (const beat of voice.beats) {
-            nextBeat = Math.max(nextBeat, beat.id + 1)
+            nextBeat = Math.max(nextBeat, beat.id! + 1)
             for (const note of beat.notes ?? []) nextNote = Math.max(nextNote, note.id + 1)
           }
         }
       }
     }
   }
-  const ids = new Map()
+  const ids = new Map<number, number>()
   for (const { data } of source.beats) {
-    for (const note of data.notes) ids.set(note.id, nextNote++)
+    for (const note of data.notes!) ids.set(note.id, nextNote++)
   }
   const beats = source.beats.map(({ data, ticks }) => ({
     ticks, data: {
       ...data, id: nextBeat++, overridedisplayduration: ticks,
-      notes: data.notes.map(note => {
-        const copy = { ...note, id: ids.get(note.id) }
+      notes: data.notes!.map(note => {
+        const copy: RawNote = { ...note, id: ids.get(note.id)! }
         for (const field of linkFields) {
-          if (copy[field] !== undefined) copy[field] = ids.get(copy[field])
+          if (copy[field] !== undefined) copy[field] = ids.get(linkId(copy, field)!)
         }
         return copy
       }),
@@ -403,40 +433,40 @@ function placedBeats(raw, source) {
   return { beats, nextBeat }
 }
 
-function place(score, raw, source, target, offset = 0, freed = new Set()) {
+function place(score: model.Score, raw: RawScore, source: Fragment, target: Address, offset = 0, freed = new Set<model.Beat>()): Passage | null {
   const targetBeat = findBeat(score, target)
   if (!targetBeat || staffSignature(targetBeat.voice.bar.staff) !== source.staff) return null
   const bars = timeline(score, target)
   const anchor = bars[target[2]].slots.find(({ beat }) => beat === targetBeat)
-  const start = anchor.start - offset
+  const start = anchor!.start - offset
   const end = start + source.beats.reduce((sum, item) => sum + item.ticks, 0)
-  if (start < 0 || end > bars.at(-1).end) return null
+  if (start < 0 || end > bars.at(-1)!.end) return null
   const { beats, nextBeat } = placedBeats(raw, source)
   let restId = nextBeat
   let time = start
   let index = 0
-  let first
-  let last
+  let first: BeatAddress | undefined
+  let last: BeatAddress | undefined
   for (const bar of bars) {
     const from = Math.max(start, bar.start)
     const to = Math.min(end, bar.end)
     if (from >= to) continue
     const slots = bar.slots.filter(slot => slot.end > from && slot.start < to)
-    if (!slots.length || slots[0].start > from || slots.at(-1).end < to
+    if (!slots.length || slots[0].start > from || slots.at(-1)!.end < to
       || slots.some((slot, i) => (i > 0 && slots[i - 1].end !== slot.start)
         || (!freed.has(slot.beat) && !isAvailableRest(slot.beat)))) return null
     const address = beatAddress(slots[0].beat)
     const before = rests(from - slots[0].start)
-    const after = rests(slots.at(-1).end - to)
+    const after = rests(slots.at(-1)!.end - to)
     if (!before || !after) return null
     const replacement = before
-    const firstHere = [...address.slice(0, 4), address[4] + replacement.length]
+    const firstHere = [...address.slice(0, 4), address[4] + replacement.length] as BeatAddress
     while (time < to) {
       const entry = beats[index]
       const next = time + entry.ticks
       if (next <= to && entry.ticks === entry.data.overridedisplayduration) replacement.push(entry.data)
       else {
-        if (entry.data.notes.length) return null
+        if (entry.data.notes!.length) return null
         const split = rests(Math.min(next, to) - Math.max(time, from))
         if (!split) return null
         replacement.push(...split)
@@ -446,28 +476,30 @@ function place(score, raw, source, target, offset = 0, freed = new Set()) {
       if (next > to) entry.ticks = next - to
     }
     first ??= firstHere
-    last = [...address.slice(0, 4), address[4] + replacement.length - 1]
+    last = [...address.slice(0, 4), address[4] + replacement.length - 1] as BeatAddress
     const newBeats = [...replacement, ...after]
     for (const beat of newBeats) if (beat.id === undefined) beat.id = restId++
     rawVoice(raw, address).splice(address[4], slots.length, ...newBeats)
   }
-  return first && { first, last }
+  return first && last ? { first, last } : null
 }
 
-export function editPassage(score, { selection, source, target, grab }) {
+export type PassageEdit = { selection?: Passage | null, source?: Fragment | null, target?: BeatAddress | null, grab?: BeatAddress | null }
+
+export function editPassage(score: model.Score, { selection, source, target, grab }: PassageEdit): { text: string, passage: Passage | null } | null {
   const raw = JSON.parse(serializeScore(score))
   const entries = selection && collect(score, raw, selection)
   if (selection && !entries) return null
   let offset = 0
-  let freed
+  let freed: Set<model.Beat> | undefined
   if (grab) {
     if (!target || compare(grab, target) === 0) return null
-    source = fragment(entries)
+    source = fragment(entries!)
     if (!source) return null
-    const grabbed = entries.find(({ beat }) => compare(beatAddress(beat), grab) === 0)
+    const grabbed = entries!.find(({ beat }) => compare(beatAddress(beat), grab) === 0)
     if (!grabbed) return null
-    offset = grabbed.start - entries[0].start
-    freed = new Set(entries.filter(({ beat, data, notes }) =>
+    offset = grabbed.start - entries![0].start
+    freed = new Set(entries!.filter(({ beat, data, notes }) =>
       notes.length === (data.notes ?? []).length && !beat.text && !beat.lyrics?.length
       && !beat.chordId && !beat.fermata && !beat.automations.length && !beat.style).map(entry => entry.beat))
   }
