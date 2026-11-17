@@ -1,6 +1,6 @@
 import { localeData } from "../assets/locale-data"
 
-export type OptionLabels = Record<string, string>
+type OptionLabels = Record<string, string>
 
 function optionLabels(source: string, existing: Record<string, string> = {}): OptionLabels {
   const labels: OptionLabels = { _: source, ...existing }
@@ -299,6 +299,9 @@ const dictionaries: Record<string, Messages> = {
     .map(([locale, data]) => [locale, data.messages as Messages])),
 }
 
+const dictionaryTags = new Map<string, string>()
+for (const tag of Object.keys(dictionaries)) if (!dictionaryTags.has(tag.toLowerCase())) dictionaryTags.set(tag.toLowerCase(), tag)
+
 export function* languageAncestors(element: Element): Generator<Element> {
   for (let node: Element | null = element; node;) {
     yield node
@@ -316,14 +319,11 @@ export function language(element: Element): string {
 
 export function messages(element: Element): Messages {
   const locale = language(element)
-  const exact = Object.keys(dictionaries).find(tag => tag.toLowerCase() === locale)
-  if (exact) return dictionaries[exact]
-  const base = locale.split("-")[0]
-  const primary = Object.keys(dictionaries).find(tag => tag.toLowerCase() === base)
-  return primary ? dictionaries[primary] : en
+  const tag = dictionaryTags.get(locale) ?? dictionaryTags.get(locale.split("-")[0])
+  return tag ? dictionaries[tag] : en
 }
 
-export type SelectOption = {
+type SelectOption = {
   type: string
   control: string
   label: OptionLabels

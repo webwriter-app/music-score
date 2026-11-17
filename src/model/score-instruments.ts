@@ -1,12 +1,13 @@
 import { model } from "../assets/alphatab-core"
 import { localeData } from "../assets/locale-data"
 
-function translatedInstrument(name: string, locale: string): string {
-  const exact = Object.keys(localeData).find(tag => tag.toLowerCase() === locale.toLowerCase())
-  const base = locale.split("-")[0].toLowerCase()
-  const primary = Object.keys(localeData).find(tag => tag.toLowerCase() === base)
-  const entry = exact ?? primary
-  return (entry ? localeData[entry]?.instruments?.[name] : undefined) ?? name
+// Locale tags are resolved once; the first tag wins when two differ only in case.
+const localeTags = new Map<string, string>()
+for (const tag of Object.keys(localeData)) if (!localeTags.has(tag.toLowerCase())) localeTags.set(tag.toLowerCase(), tag)
+
+function instrumentNames(locale: string): Record<string, string> | undefined {
+  const tag = localeTags.get(locale.toLowerCase()) ?? localeTags.get(locale.split("-")[0].toLowerCase())
+  return tag ? localeData[tag]?.instruments : undefined
 }
 
 // General MIDI program order, with zero-based numbers as stored by alphaTab.
@@ -35,19 +36,19 @@ const drumBank = 128
 const channelFields = ["primaryChannel", "secondaryChannel"] as const
 
 export function playbackInstruments(track: model.Track, locale = ""): [number, string][] {
-  const items = track.isPercussion ? kits : programs
-  return items.map(([id, name]) => [id, translatedInstrument(name, locale)])
+  const names = instrumentNames(locale)
+  return (track.isPercussion ? kits : programs).map(([id, name]) => [id, names?.[name] ?? name])
 }
 
 export function playbackInstrumentName(track: model.Track, locale = ""): string {
   const { program } = track.playbackInfo
   const name = track.isPercussion ? (kits.find(([id]) => id === program) ?? kits[0])[1]
     : programs[program]?.[1] ?? `GM ${program + 1}`
-  return translatedInstrument(name, locale)
+  return instrumentNames(locale)?.[name] ?? name
 }
 
 export function setPlaybackInstrument(track: model.Track, program: number): boolean {
-  if (!playbackInstruments(track).some(([id]) => id === program)) return false
+  if (!(track.isPercussion ? kits : programs).some(([id]) => id === program)) return false
   const { playbackInfo } = track
   const bank = track.isPercussion ? drumBank : 0
   if (playbackInfo.program === program && (playbackInfo.bank === bank

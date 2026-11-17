@@ -15,7 +15,7 @@ Environment.initializeMain(
   (context, settings) => context.audioWorklet.addModule(settings.core.scriptFile!),
 )
 let workerSource: Promise<Blob> | null | undefined
-export function loadWorkerSource(): Promise<Blob> {
+function loadWorkerSource(): Promise<Blob> {
   workerSource ??= fetch(asset("alphaTab.min.js")).then(response => {
     if (!response.ok) throw new Error("Could not load alphaTab worker")
     return response.blob()

@@ -146,7 +146,7 @@ function isSimpleBeat(beat: model.Beat): boolean {
     && beat.playbackDuration === beat.displayDuration
 }
 
-export function isEntryRest(beat: model.Beat | null | undefined): boolean {
+function isEntryRest(beat: model.Beat | null | undefined): boolean {
   if (!beat?.isRest || beat.isEmpty || beat.hasTuplet || beat.graceType !== GraceType.None
     || beat.graceGroup || beat.playbackDuration !== beat.displayDuration) return false
   return beat.displayDuration >= smallestRest && beat.displayDuration % smallestRest === 0
@@ -259,7 +259,7 @@ function tupletTicks(voice: model.Voice, numerator: number, denominator: number,
   return group.isFull ? ticks : null
 }
 
-export type TupletPlan = {
+type TupletPlan = {
   beats: model.Beat[], numerator: number, denominator: number, following: number, remainder: number, ticks: number[], normal: number
 }
 
@@ -483,7 +483,7 @@ export function graceTypeFor(beat: model.Beat | null | undefined, count = 1): mo
   return duration < available ? type : null
 }
 
-export type PitchEntry = { pitch: number, mode?: model.NoteAccidentalMode }
+type PitchEntry = { pitch: number, mode?: model.NoteAccidentalMode }
 
 export function insertGraceNotes(note: model.Note, pitches: PitchEntry[]): NoteAddress | null {
   const beat = note.beat

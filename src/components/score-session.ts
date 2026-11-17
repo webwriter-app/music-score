@@ -10,7 +10,7 @@ import { ScoreText } from "./score-text"
 import { ScoreView } from "./score-view"
 
 // What the controllers need from the widget element.
-export type ScoreHost = {
+type ScoreHost = {
   readonly type: string
   readonly size: keyof typeof scoreScales
   readonly editing: boolean

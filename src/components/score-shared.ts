@@ -41,7 +41,7 @@ export type Ui = {
 export type PassageSelection = Passage & { annotation?: string }
 export type Notice = "importError" | "readError" | "renderError" | "guitar-tab" | "drum-tab" | "jianpu"
 
-export type DragState = {
+type DragState = {
   kind: "pending" | "pitch" | "move" | "select"
   point: ScorePoint
   origin: BeatAddress
@@ -65,7 +65,7 @@ export type DragState = {
   target?: BeatAddress | null
 }
 
-export type AppendDrag = {
+type AppendDrag = {
   button: HTMLElement
   id: number
   start: Position
@@ -93,13 +93,13 @@ export type CompletionState = CompletionContext & {
 }
 
 export type TempoPoint = ScorePoint & { glyph: Element, prefix: string, digits: string, suffix: string, measure: number }
-export type TextEdit = { point: ScorePoint, button: HTMLElement, glyph?: Element | null, initialValue: string }
+type TextEdit = { point: ScorePoint, button: HTMLElement, glyph?: Element | null, initialValue: string }
 
 // What to focus again after the points are redrawn.
 export type FocusTarget = { address?: readonly number[], kind?: string, measure?: number, trackIndex?: number, bar?: readonly number[] }
 
 // The entry the completion continues with after a choice was applied.
-export type NextEntry = { kind?: string, address: readonly number[], step?: number, duration?: model.Duration, dots?: number }
+type NextEntry = { kind?: string, address: readonly number[], step?: number, duration?: model.Duration, dots?: number }
 
 // State the widget and its controllers share. Controllers read and write it through the session.
 export type EditorState = {

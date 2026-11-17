@@ -53,7 +53,7 @@ function canJoinBeam(left: model.Beat | undefined, right: model.Beat | undefined
     && left!.displayStart + left!.displayDuration === right!.displayStart
 }
 
-export type BeamLinks = { joins: model.Beat[], edges: model.Beat[] }
+type BeamLinks = { joins: model.Beat[], edges: model.Beat[] }
 
 export function passageBeamLinks(score: model.Score, passage: Passage | null | undefined): BeamLinks | null {
   const first = passage && findBeat(score, passage.first)
@@ -115,7 +115,7 @@ function selectedSlots(score: model.Score, { first, last }: Passage): Slot[] {
     .filter(({ beat }) => inPassage(beatAddress(beat), { first, last }))
 }
 
-export type PassageChange = { id: string, direction: model.CrescendoType, apply: () => boolean }
+type PassageChange = { id: string, direction: model.CrescendoType, apply: () => boolean }
 
 export function passageHairpinChanges(score: model.Score, passage: Passage | null | undefined): PassageChange[] {
   if (!passage) return []
@@ -187,7 +187,7 @@ const noteMarks: NoteMark[] = [
   }, canOrnament],
 ]
 
-export type MarkChange = { mark: string, remove: boolean, apply: () => boolean }
+type MarkChange = { mark: string, remove: boolean, apply: () => boolean }
 
 export function passageMarkChanges(score: model.Score, passage: Passage | null | undefined): MarkChange[] {
   if (!passage) return []
@@ -252,7 +252,7 @@ function existingNoteLinks(notes: Set<model.Note>, kind: LinkKind, includeOutsid
   return [...pairs]
 }
 
-export type NoteLinks = Record<"tie" | "slur" | "untie" | "unslur", Link[]>
+type NoteLinks = Record<"tie" | "slur" | "untie" | "unslur", Link[]>
 
 export function passageNoteLinks(score: model.Score, passage: Passage | null | undefined): NoteLinks | null {
   if (!passage) return null

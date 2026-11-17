@@ -28,7 +28,7 @@ export type ScorePoint = {
   headingAction?: boolean
 }
 
-export type TrackLabel = { name: string, trackIndex: number, x: number, y: number }
+type TrackLabel = { name: string, trackIndex: number, x: number, y: number }
 // Measure edges and vertical extent of the rows that an end-bar drag would add.
 export type AppendArea = { y: number, h: number, dy: number, edges: number[] }
 
