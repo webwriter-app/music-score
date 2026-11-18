@@ -6,9 +6,33 @@
   "type": "module",
   "keywords": [
     "webwriter-widget",
+    "widget-practical",
+    "widget-presentational",
+    "isced2011-1",
+    "isced2011-2",
+    "isced2011-3",
+    "isced2011-4",
+    "isced2011-5",
+    "isced2011-6",
+    "isced2011-7",
+    "iscedf2013-0215",
+    "widget-editable",
+    "widget-allows-pointer-input",
+    "widget-allows-keyboard-input",
+    "widget-allows-touch-input",
+    "widget-convertible-from-application/vnd.recordare.musicxml+xml",
+    "widget-convertible-to-audio/midi",
+    "widget-responsive",
+    "widget-themeable",
+    "widget-printable",
+    "widget-stateful",
+    "widget-configurable",
+    "widget-testable",
     "music",
     "notation",
     "musicxml",
+    "midi",
+    "guitar-tab",
     "widget-lang-en",
     "widget-lang-en-US",
     "widget-lang-en-GB",
@@ -265,7 +289,16 @@
         "ckb-Arab": "نۆتەنووس",
         "af-ZA": "Partituur",
         "af-NA": "Partituur"
-      }
+      },
+      "importFormats": [
+        ".musicxml",
+        ".mxl",
+        ".xml"
+      ],
+      "exportFormats": [
+        "audio/midi",
+        ".gp"
+      ]
     },
     "./snippets/practice-phrase": {
       "label": {

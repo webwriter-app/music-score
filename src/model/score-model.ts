@@ -1,4 +1,4 @@
-import { Environment, Settings, io, midi, model } from "../assets/alphatab-core"
+import { Environment, Settings, exporter, io, midi, model } from "../assets/alphatab-core"
 import { configureBlankInstrument } from "./score-notation"
 
 const { Automation, Bar, Beat, Clef, Duration, DynamicValue, GraceType, JsonConverter, KeySignatureType, MasterBar,
@@ -48,6 +48,18 @@ export function importMusicXML(bytes: Uint8Array): model.Score {
   const score = importer!.readScore()
   if (!score.tracks.length || !score.masterBars.length) throw new Error("The MusicXML file has no score")
   return score
+}
+
+/** Standard MIDI file (format 1) of the score, with its tempo, instruments and repeats as played. Notation details are lost. */
+export function exportMidi(score: model.Score): Uint8Array {
+  const file = new midi.MidiFile()
+  new midi.MidiFileGenerator(score, new Settings(), new midi.AlphaSynthMidiFileHandler(file, true)).generate()
+  return file.toBinary()
+}
+
+/** Guitar Pro 7 file (`.gp`) of the score. */
+export function exportGuitarPro(score: model.Score): Uint8Array {
+  return new exporter.Gp7Exporter().export(score, new Settings())
 }
 
 export function serializeScore(score: model.Score): string {

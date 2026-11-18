@@ -122,6 +122,19 @@ export class ScoreView {
     this.state.api.render()
   }
 
+  // Headings are single lines centred on the sheet. When one is wider than the room beside the transport
+  // buttons, it gets a smaller font so that it is not cut off at narrow widths.
+  fitHeadings() {
+    const room = this.ui.sheet.clientWidth - 2 * (transportWidth + transportGap)
+    if (room <= 0) return
+    for (const text of this.ui.score.querySelectorAll<SVGTextElement>("svg :is(.ww-heading-title, .ww-heading-subtitle) text")) {
+      const width = text.getComputedTextLength?.() ?? 0
+      if (width <= room) continue
+      const size = parseFloat(getComputedStyle(text).fontSize)
+      if (size > 0) text.style.fontSize = Math.max(10, size * room / width) + "px"
+    }
+  }
+
   placeGutter() {
     const systems = this.state.api?.boundsLookup?.staffSystems ?? []
     const system = systems[0]
@@ -138,6 +151,7 @@ export class ScoreView {
     const { y, h } = firstStaff.realBounds
     transport.style.marginTop = this.state.score!.title?.trim() ? "" : Math.max(4, y + h / 2 - transportButtonHeight) + "px"
     transport.hidden = false
+    this.fitHeadings()
     const braces = scoreBraces(this.ui.sheet, this.ui.score)
     const labels = trackLabelPositions(this.state.score!, systems, braces, this.c.editing, language(this.el))
     trackLabels.replaceChildren(...labels.map(({ name, trackIndex, x, y }) => {

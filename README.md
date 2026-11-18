@@ -49,6 +49,8 @@ npm install @webwriter/music-score
 ## Fields
 | Name (Attribute Name) | Type | Description | Default | Reflects |
 | :-------------------: | :--: | :---------: | :-----: | :------: |
+| `WebwriterMusicScore.convertFrom` | `object` | - | `{ ".musicxml": "importScoreFile", ".mxl": "importScoreFile", ".xml": "importScoreFile" }` | ✗ |
+| `WebwriterMusicScore.convertTo` | `object` | - | `{ "audio/midi": "exportMidiFile", ".gp": "exportGuitarProFile" }` | ✗ |
 | `options` | - | - | - | ✗ |
 | `actions` | - | - | - | ✗ |
 | `type` | `string` | - | - | ✗ |
@@ -60,7 +62,11 @@ npm install @webwriter/music-score
 ## Methods
 | Name | Description | Parameters |
 | :--: | :---------: | :-------: |
+| `focus` | - | `options: FocusOptions`
 | `importMusicXML` | - | `[file]: File[]`
+| `importScoreFile` | Parses a whole MusicXML file first, then returns the function that replaces the score. | `file: File`
+| `exportMidiFile` | - | -
+| `exportGuitarProFile` | - | -
 
 *[Methods](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Method_definitions) allow programmatic access to the widget.*
 
@@ -71,15 +77,25 @@ npm install @webwriter/music-score
 
 *[Events](https://developer.mozilla.org/en-US/docs/Web/Events) are dispatched by the widget after certain triggers.*
 
+## CSS parts
+| Name | Description |
+| :--: | :---------: |
+| sheet | The paper the score is engraved on (a white sheet with black ink). |
+| notice | The status line that reports an unreadable score or a notation change. Theme: the interface follows `--ww-text-color` and `--ww-font-family` of the document. The selection, the playback cursor and the focus ring use `--ww-theme-accent-1` (give it enough contrast on white). The engraving fonts stay fixed, because alphaTab measures the score with them. Files: MusicXML (`.musicxml`, `.xml`, `.mxl`) can be imported through `convertFrom`; the whole file is parsed before the score is replaced. The score exports as a MIDI file (`audio/midi`: notes, tempo, instruments and repeats; engraving, lyrics and text are dropped) and as a Guitar Pro 7 file (`.gp`). alphaTab has no MusicXML writer, so MusicXML is import only. There are no signals: nothing in this widget has a value that another widget could use. Keyboard: in read mode Tab reaches Play and Stop. In edit mode every note, rest, beat and score text is a tab stop; Enter or Space selects it, arrow keys move, and typing opens the entry field. Touch: tap selects, a drag moves a note or changes its pitch. Print: the score prints without controls. |
+
+*[CSS parts](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_shadow_parts) allow freely styling internals of the widget with CSS.*
+
 ## Editing config
 | Name | Value |
 | :--: | :---------: |
 | `label` | `[object Object]` |
+| `importFormats` | `.musicxml,.mxl,.xml` |
+| `exportFormats` | `audio/midi,.gp` |
 
 *The [editing config](https://webwriter.app/docs/packages/configuring/#editingconfig) defines how explorable authoring tools such as [WebWriter](https://webwriter.app) treat the widget.*
 
-*No public slots, custom CSS properties, or CSS parts.*
+*No public slots, or custom CSS properties.*
 
 
 ---
-*Generated with @webwriter/build@1.9.1*
+*Generated with @webwriter/build@1.14.0*

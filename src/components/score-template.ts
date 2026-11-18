@@ -5,11 +5,13 @@ import { transportButtonHeight, transportWidth } from "./score-shared"
 
 export const template = `
 <style>
-  :host { display: block; min-inline-size: 300px; min-block-size: var(--score-row-height, 82px);
-    overflow: auto; scrollbar-width: thin; font: 0.875rem/1.45 system-ui, sans-serif; }
+  :host { display: block; box-sizing: border-box; min-inline-size: 300px; max-inline-size: 2100px;
+    min-block-size: var(--score-row-height, 82px); overflow: auto; scrollbar-width: thin;
+    color: var(--ww-text-color, inherit); font: 0.875rem/1.45 var(--ww-font-family, system-ui, sans-serif); }
   [hidden] { display: none !important; }
   .notice { margin: 0; }
-  .sheet { --position-blue: #356ad6; position: relative; display: grid; grid-template-columns: minmax(0, 1fr);
+  .sheet { --position-blue: var(--ww-theme-accent-1, #356ad6); --position-ink: var(--ww-theme-accent-1, #2358c0);
+    position: relative; display: grid; grid-template-columns: minmax(0, 1fr);
     background: white; color: black; }
   #score, .transport { grid-area: 1 / 1; align-self: start; }
   .at-surface { position: relative; }
@@ -26,7 +28,7 @@ export const template = `
   .at-cursor-bar { background: #d6e3ff60; scroll-margin-block: 8px; }
   .at-cursor-beat { background: var(--position-blue); }
   .sheet:not(.playing) .at-cursors { visibility: hidden; }
-  .playing .at-highlight * { fill: #2358c0; stroke: #2358c0; }
+  .playing .at-highlight * { fill: var(--position-ink); stroke: var(--position-ink); }
   .at-surface .selected-ink, .at-surface .selected-ink text { fill: var(--position-blue); }
   .track-labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
   .track-label { position: absolute; transform: translate(-100%, -50%) rotate(180deg);
@@ -42,33 +44,41 @@ export const template = `
   #playIcon { --icon: url(${JSON.stringify(play)}); }
   #pauseIcon { --icon: url(${JSON.stringify(pause)}); }
   #stopIcon { --icon: url(${JSON.stringify(stop)}); }
+  .transport button { position: relative; }
+  .transport button::after { content: ""; position: absolute; inset-inline: -4px; }
+  #play::after { inset-block: -6px 0; }
+  #stop::after { inset-block: 0 -6px; }
   .transport button:enabled { cursor: pointer; }
   .transport button:disabled { opacity: 0.5; }
-  :focus-visible { outline: 2px solid #356ad6; outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--position-blue); outline-offset: 2px; }
   #surface:focus, #targets:focus { outline: none; }
   .points { position: absolute; inset: 0; z-index: 1001; pointer-events: none; user-select: none; }
   .point { position: absolute; box-sizing: border-box; padding: 0; border: 0; border-radius: 0.2rem;
-    color: #2358c0; background: transparent; pointer-events: auto; cursor: pointer; }
-  .point:hover { background: #356ad620; }
+    color: var(--position-ink); background: transparent; pointer-events: auto; cursor: pointer; }
+  .point:hover { background: color-mix(in srgb, var(--position-blue) 12.5%, transparent); }
   .point[data-kind=insert] { cursor: crosshair; }
   .point:is([data-kind=tempo], [data-kind=text], [data-kind=lyric], [data-kind=title], [data-kind=subtitle]) { cursor: text; }
   .point[data-heading-action] { cursor: pointer; font: 0.75rem system-ui; color: var(--position-blue); background: #fff; }
-  .point[data-heading-action]:hover { background: #edf2fc; }
+  .point[data-heading-action]:hover { background: color-mix(in srgb, var(--position-blue) 9%, #fff); }
   .sheet:not(.focused) .point[data-heading-action] { visibility: hidden; }
   .point:is([data-kind=beat], [data-kind=insert], [data-kind=note]) { touch-action: none; }
-  .point[data-selected] { background: #356ad626; }
+  .point[data-selected] { background: color-mix(in srgb, var(--position-blue) 15%, transparent); }
   .point[data-drop] { box-shadow: inset 2px 0 var(--position-blue); }
   .point[data-kind=note] { z-index: 1; }
+  @media (pointer: coarse) {
+    .point[data-kind=note]::after { content: ""; position: absolute; inset-block: 50% auto; inset-inline: 50% auto;
+      translate: -50% -50%; inline-size: max(100%, 24px); block-size: max(100%, 24px); }
+  }
   .point[data-kind=note]:hover { background: transparent; }
   .point[data-pitch-drag] { cursor: ns-resize; }
   .point[data-move] { cursor: grab; }
-  .point[data-kind=append] { z-index: 1; color: var(--position-blue); background: #356ad614;
+  .point[data-kind=append] { z-index: 1; color: var(--position-blue); background: color-mix(in srgb, var(--position-blue) 8%, transparent);
     font: 1.125rem system-ui; white-space: nowrap; cursor: pointer; touch-action: none; }
   .sheet:not(.focused) .point[data-kind=append] { visibility: hidden; }
   .point[data-kind=append]::before { content: ""; position: absolute; inset: 0 calc(100% + 1px) 0 auto;
     width: var(--end-bar-span); cursor: ew-resize; }
   .sheet:not(.resizing-end-bar):has(.point[data-kind=append]:hover) [data-end-barline] { fill: var(--position-blue); }
-  .point[data-kind=append]:hover { background: #356ad62b; }
+  .point[data-kind=append]:hover { background: color-mix(in srgb, var(--position-blue) 17%, transparent); }
   .point[data-trimming] { opacity: 0; }
   .sheet.resizing-end-bar, .sheet.resizing-end-bar * { cursor: ew-resize !important; }
   .tempo-digits, .editing-text { visibility: hidden; }
@@ -77,7 +87,7 @@ export const template = `
   .point.tempo-input { min-inline-size: calc(3ch + 2px); }
   .point.text-input { color: var(--score-text-color, black); }
   .point.text-input[data-original-text] { color: transparent; caret-color: var(--score-text-color, black); }
-  .text-input[data-original-text]::selection { color: transparent; background: #356ad64d; }
+  .text-input[data-original-text]::selection { color: transparent; background: color-mix(in srgb, var(--position-blue) 30%, transparent); }
   :is(.ww-direction-text, .ww-direction-lyric, .ww-heading-title, .ww-heading-subtitle) text,
   .text-input { font-kerning: normal; text-rendering: geometricPrecision; }
   .text-input::placeholder { color: #767676; opacity: 1; }
@@ -98,8 +108,8 @@ export const template = `
   .completion li[role=option] { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto;
     align-items: center; column-gap: 6px; min-block-size: 34px; border-radius: 4px; padding: 0 5px;
     cursor: pointer; }
-  .completion li[aria-selected=true] { color: #2358c0; background: #356ad622; }
-  .completion li[role=option]:hover { background: #356ad614; }
+  .completion li[aria-selected=true] { color: var(--position-ink); background: color-mix(in srgb, var(--position-blue) 13%, transparent); }
+  .completion li[role=option]:hover { background: color-mix(in srgb, var(--position-blue) 8%, transparent); }
   .completion li[aria-current=true] > span::after { content: " ✓"; color: var(--position-blue); }
   .completion svg { inline-size: 44px; block-size: 34px; font-family: var(--music-font, alphaTab); overflow: hidden; }
   .completion svg text { text-anchor: middle; }
@@ -107,6 +117,7 @@ export const template = `
     padding: 0 4px; border: 1px solid #d7dce6; border-radius: 4px; font-size: .8em; }
   .completion-empty { margin: 4px 0 0; padding: 4px 8px; color: #5d6677; }
   @media print {
+    :host { overflow: visible; }
     .transport, .notice, .points, .at-cursors, .append-layer, .completion { display: none !important; }
     .tempo-digits, .editing-text { visibility: visible; }
     .sheet { min-height: 0 !important; }
@@ -117,8 +128,8 @@ export const template = `
 </style>
 <style id="rowMinimum"></style>
 <section id="surface" contenteditable="false" tabindex="-1">
-  <p id="notice" class="notice" role="status" hidden></p>
-  <div id="sheet" class="sheet">
+  <p id="notice" class="notice" part="notice" role="status" hidden></p>
+  <div id="sheet" class="sheet" part="sheet">
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
       <filter id="trim-tint">
         <feFlood flood-color="#a43131" />

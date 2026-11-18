@@ -36,7 +36,7 @@ export class ScoreAppend {
     const button = event.currentTarget as HTMLElement
     const start = sheetPosition(this.ui.sheet, event.clientX, event.clientY)
     this.state.appendDrag = { button, id: event.pointerId, start, count: 0, clickAdds: start.x >= this.state.targets.get(button)!.rect.x }
-    button.setPointerCapture(event.pointerId)
+    try { button.setPointerCapture(event.pointerId) } catch { /* the pointer is gone or synthetic */ }
   }
 
   moveAppendDrag(event: PointerEvent) {

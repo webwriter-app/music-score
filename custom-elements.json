@@ -10,7 +10,35 @@
           "kind": "class",
           "description": "Create, import and play scores. A score is stored as alphaTab JSON in a\n`<script type=\"application/json\" slot=\"data\" data-music-score>` child; without it the widget starts with a blank score.\nMusicXML files (`.musicxml`, `.xml`, `.mxl`, up to 8 MiB) are imported through the `importMusicXML` action.\n\nMusic Score bundles alphaTab 1.9.0 under the Mozilla Public License 2.0 (https://www.mozilla.org/MPL/2.0/).\nThe bundled JavaScript keeps the upstream copyright and license notices. `scripts/alphatab.mjs` reproduces the changes\napplied to the pinned release (https://github.com/CoderLine/alphaTab/releases/tag/v1.9.0).",
           "name": "WebwriterMusicScore",
+          "cssParts": [
+            {
+              "description": "The paper the score is engraved on (a white sheet with black ink).",
+              "name": "sheet"
+            },
+            {
+              "description": "The status line that reports an unreadable score or a notation change. Theme: the interface follows `--ww-text-color` and `--ww-font-family` of the document. The selection, the playback cursor and the focus ring use `--ww-theme-accent-1` (give it enough contrast on white). The engraving fonts stay fixed, because alphaTab measures the score with them. Files: MusicXML (`.musicxml`, `.xml`, `.mxl`) can be imported through `convertFrom`; the whole file is parsed before the score is replaced. The score exports as a MIDI file (`audio/midi`: notes, tempo, instruments and repeats; engraving, lyrics and text are dropped) and as a Guitar Pro 7 file (`.gp`). alphaTab has no MusicXML writer, so MusicXML is import only. There are no signals: nothing in this widget has a value that another widget could use. Keyboard: in read mode Tab reaches Play and Stop. In edit mode every note, rest, beat and score text is a tab stop; Enter or Space selects it, arrow keys move, and typing opens the entry field. Touch: tap selects, a drag moves a note or changes its pitch. Print: the score prints without controls.",
+              "name": "notice"
+            }
+          ],
           "members": [
+            {
+              "kind": "field",
+              "name": "convertFrom",
+              "type": {
+                "text": "object"
+              },
+              "static": true,
+              "default": "{ \".musicxml\": \"importScoreFile\", \".mxl\": \"importScoreFile\", \".xml\": \"importScoreFile\" }"
+            },
+            {
+              "kind": "field",
+              "name": "convertTo",
+              "type": {
+                "text": "object"
+              },
+              "static": true,
+              "default": "{ \"audio/midi\": \"exportMidiFile\", \".gp\": \"exportGuitarProFile\" }"
+            },
             {
               "kind": "field",
               "name": "#permissions",
@@ -106,12 +134,59 @@
             },
             {
               "kind": "method",
+              "name": "focus",
+              "parameters": [
+                {
+                  "name": "options",
+                  "optional": true,
+                  "type": {
+                    "text": "FocusOptions"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
               "name": "importMusicXML",
               "parameters": [
                 {
                   "name": "[file]",
                   "type": {
                     "text": "File[]"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "importScoreFile",
+              "parameters": [
+                {
+                  "name": "file",
+                  "type": {
+                    "text": "File"
+                  }
+                }
+              ],
+              "description": "Parses a whole MusicXML file first, then returns the function that replaces the score."
+            },
+            {
+              "kind": "method",
+              "name": "exportMidiFile"
+            },
+            {
+              "kind": "method",
+              "name": "exportGuitarProFile"
+            },
+            {
+              "kind": "method",
+              "name": "#fileName",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "extension",
+                  "type": {
+                    "text": "string"
                   }
                 }
               ]

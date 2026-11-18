@@ -1,5 +1,5 @@
 import { PermissionsCore } from "@webwriter/widget/permissions"
-import { blankScore, importMusicXML, localizeLabels, readScore, serializeScore } from "../model/score-model"
+import { blankScore, exportGuitarPro, exportMidi, importMusicXML, localizeLabels, readScore, serializeScore } from "../model/score-model"
 import { applyScoreType, defaultScoreType, scoreScales, scoreTypes } from "../model/score-notation"
 import { languageAncestors, messages, optionFor, sizeOption, typeOption } from "../model/messages"
 import { ScoreSession } from "../components/score-session"
@@ -30,9 +30,27 @@ function customElement(tag: string) {
  * @attr {string} type - Notation: "standard", "guitar-tab", "drum-tab" or "jianpu".
  * @attr {string} size - Scale of the notation: "compact", "normal" or "spacious".
  * @attr {string} lang - Language of the interface. Defaults to the language of the document.
+ *
+ * @part sheet - The paper the score is engraved on (a white sheet with black ink).
+ * @part notice - The status line that reports an unreadable score or a notation change.
+ *
+ * Theme: the interface follows `--ww-text-color` and `--ww-font-family` of the document. The selection, the playback
+ * cursor and the focus ring use `--ww-theme-accent-1` (give it enough contrast on white). The engraving fonts
+ * stay fixed, because alphaTab measures the score with them.
+ *
+ * Files: MusicXML (`.musicxml`, `.xml`, `.mxl`) can be imported through `convertFrom`; the whole file is parsed before
+ * the score is replaced. The score exports as a MIDI file (`audio/midi`: notes, tempo, instruments and repeats; engraving,
+ * lyrics and text are dropped) and as a Guitar Pro 7 file (`.gp`). alphaTab has no MusicXML writer, so MusicXML is import only.
+ * There are no signals: nothing in this widget has a value that another widget could use.
+ *
+ * Keyboard: in read mode Tab reaches Play and Stop. In edit mode every note, rest, beat and score text is a tab stop;
+ * Enter or Space selects it, arrow keys move, and typing opens the entry field. Touch: tap selects, a drag moves
+ * a note or changes its pitch. Print: the score prints without controls.
  */
 @customElement("webwriter-music-score")
 export class WebwriterMusicScore extends HTMLElement {
+  static convertFrom = { ".musicxml": "importScoreFile", ".mxl": "importScoreFile", ".xml": "importScoreFile" }
+  static convertTo = { "audio/midi": "exportMidiFile", ".gp": "exportGuitarProFile" }
   static observedAttributes = ["contenteditable", "lang", "type", "size"]
 
   #permissions = new PermissionsCore(this)
@@ -227,6 +245,12 @@ export class WebwriterMusicScore extends HTMLElement {
     this.#updateControls()
   }
 
+  focus(options?: FocusOptions) {
+    const { play, points, surface } = this.#ui
+    const target = !points.hidden && this.#ui.targets.querySelector<HTMLElement>(".point") || (!play.disabled && !play.closest("[hidden]") ? play : surface)
+    target.focus(options)
+  }
+
   async importMusicXML([file]: File[]) {
     if (!file || !this.isConnected || !this.#session.editing) return
     const request = ++this.#importRequest
@@ -247,6 +271,36 @@ export class WebwriterMusicScore extends HTMLElement {
       this.#updateControls()
       throw new Error(messages(this).importError)
     }
+  }
+
+  /** Parses a whole MusicXML file first, then returns the function that replaces the score. */
+  async importScoreFile(file: File) {
+    if (!file) return null
+    let text: string
+    try {
+      if (file.size > 8 * 1024 * 1024) throw new Error("MusicXML exceeds 8 MiB")
+      text = serializeScore(importMusicXML(new Uint8Array(await file.arrayBuffer())))
+    } catch {
+      throw new Error(messages(this).importError)
+    }
+    return () => {
+      if (this.isConnected) this.#writeScore(text)
+    }
+  }
+
+  exportMidiFile() {
+    const score = this.#session.state.score
+    return score ? new File([exportMidi(score) as BlobPart], this.#fileName("mid"), { type: "audio/midi" }) : null
+  }
+
+  exportGuitarProFile() {
+    const score = this.#session.state.score
+    return score ? new File([exportGuitarPro(score) as BlobPart], this.#fileName("gp"), { type: "application/octet-stream" }) : null
+  }
+
+  #fileName(extension: string) {
+    const title = this.#session.state.score?.title.trim().replace(/[\\/:*?"<>|\s]+/g, "-").replace(/^-+|-+$/g, "")
+    return `${title || "score"}.${extension}`
   }
 
   #updateFocus(focused = this.matches(":focus-within") && this.ownerDocument.hasFocus()) {

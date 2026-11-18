@@ -11,7 +11,7 @@ import drumTab from "../snippets/drum-tab.html"
 import jianpu from "../snippets/jianpu.html"
 import {
   appendMeasure, beatAddress, blankScore, canChangeDuration, changeDuration, changePitch, cycleClef, cycleMeter,
-  findNote, importMusicXML, noteAddress, pitchAtStep, placeNote, readScore, removeNote,
+  findNote, exportGuitarPro, exportMidi, importMusicXML, noteAddress, pitchAtStep, placeNote, readScore, removeNote,
   serializeScore, setHeading, setLyric, setScoreText, setTempo, trimMeasures, writtenPitch,
 } from "../src/model/score-model"
 import type { BeatAddress, NoteAddress } from "../src/model/score-model"
@@ -19,7 +19,7 @@ import { applyScoreType, defaultScoreType, scoreScales } from "../src/model/scor
 import { playbackInstruments, setPlaybackInstrument } from "../src/model/score-instruments"
 import { copyPassage, editPassage, passageBetween, readPassage } from "../src/model/score-passage"
 import { appendButtonRect, endBarDragDelta, scorePoints, trackLabelPositions } from "../src/model/score-points"
-import { NotationElement, Settings, midi, model, rendering, synth } from "../src/assets/alphatab-core"
+import { Environment, NotationElement, Settings, io, midi, model, rendering, synth } from "../src/assets/alphatab-core"
 import { scoreCompletions } from "../src/components/score-completion"
 import type { CompletionContext } from "../src/components/score-completion"
 import { messages, optionFor, sizeOption } from "../src/model/messages"
@@ -1173,6 +1173,69 @@ describe("score model", function () {
     assert.strictEqual(beats(cut)[3].isRest, true)
     assert.strictEqual(beats(cut, 1)[0].isRest, true)
     assert.strictEqual(beats(cut, 2)[0].notes[0].tieDestination, beats(cut, 2)[1].notes[0])
+  })
+})
+
+describe("file export round trips", function () {
+  const source = () => importMusicXML(fixture)
+  const sounding = (score: model.Score) => {
+    const notes: model.Note[] = []
+    for (const track of score.tracks) for (const st of track.staves) for (const bar of st.bars) for (const voice of bar.voices) for (const beat of voice.beats) for (const note of beat.notes) if (!note.isTieDestination) notes.push(note)
+    return notes
+  }
+  const noteCount = (score: model.Score) => sounding(score).length
+  function readMidi(bytes: Uint8Array) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+    const chunk = (at: number) => String.fromCharCode(...bytes.slice(at, at + 4))
+    assert.strictEqual(chunk(0), "MThd")
+    const tracks = view.getUint16(10)
+    const pitches = new Set<number>()
+    let at = 14, noteOns = 0, microsPerBeat = 0
+    for (let t = 0; t < tracks; t++) {
+      assert.strictEqual(chunk(at), "MTrk")
+      const end = at + 8 + view.getUint32(at + 4)
+      let i = at + 8, status = 0
+      const varLen = () => { let v = 0, b; do { b = bytes[i++]; v = (v << 7) | (b & 0x7f) } while (b & 0x80); return v }
+      while (i < end) {
+        varLen()
+        if (bytes[i] & 0x80) status = bytes[i++]
+        if (status === 0xff) {
+          const type = bytes[i++], length = varLen()
+          if (type === 0x51 && !microsPerBeat) microsPerBeat = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]
+          i += length
+        } else if (status === 0xf0 || status === 0xf7) i += varLen()
+        else {
+          const kind = status & 0xf0
+          if (kind === 0x90 && bytes[i + 1] > 0) { noteOns++; pitches.add(bytes[i]) }
+          i += kind === 0xc0 || kind === 0xd0 ? 1 : 2
+        }
+      }
+      assert.strictEqual(i, end, "track chunk is well formed")
+      at = end
+    }
+    return { tracks, noteOns, pitches, tempo: Math.round(60000000 / microsPerBeat) }
+  }
+
+  it("writes a MIDI file with the tempo and the notes of the score", function () {
+    const score = source()
+    const midiFile = readMidi(exportMidi(score))
+    assert.isAtLeast(midiFile.tracks, score.tracks.length)
+    assert.strictEqual(midiFile.tempo, Math.round(score.tempo))
+    assert.isAbove(noteCount(score), 0)
+    // The phrase has a repeat, and the MIDI file plays it out, so every note sounds at least once.
+    assert.isAtLeast(midiFile.noteOns, noteCount(score))
+    assert.sameMembers([...midiFile.pitches], [...new Set(sounding(score).map(note => note.realValue))])
+  })
+
+  it("writes a Guitar Pro file that alphaTab reads back with the same tracks, bars and tempo", function () {
+    const score = source()
+    const importer = Environment.buildImporters().find(candidate => candidate.name === "Guitar Pro 7-8")!
+    importer.init(io.ByteBuffer.fromBuffer(exportGuitarPro(score)), new Settings())
+    const back = importer.readScore()
+    assert.strictEqual(back.tracks.length, score.tracks.length)
+    assert.strictEqual(back.masterBars.length, score.masterBars.length)
+    assert.strictEqual(Math.round(back.tempo), Math.round(score.tempo))
+    assert.strictEqual(noteCount(back), noteCount(score))
   })
 })
 

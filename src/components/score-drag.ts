@@ -44,7 +44,7 @@ export class ScoreDrag {
       startX: event.clientX, startY: event.clientY,
       startStep, step: startStep, stepHeight, preview: null, previewShift: 0, rendering: false,
     }
-    button.setPointerCapture(event.pointerId)
+    try { button.setPointerCapture(event.pointerId) } catch { /* the pointer is gone or synthetic */ }
     if (!inside && !event.shiftKey) this.c.points.selectPoint(point)
   }
 
