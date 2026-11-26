@@ -1,7 +1,7 @@
 import { PermissionsCore } from "@webwriter/widget/permissions"
 import { blankScore, exportGuitarPro, exportMidi, importMusicXML, localizeLabels, readScore, serializeScore } from "../model/score-model"
 import { applyScoreType, defaultScoreType, scoreScales, scoreTypes } from "../model/score-notation"
-import { languageAncestors, messages, optionFor, sizeOption, typeOption } from "../model/messages"
+import { languageAncestors, messages, optionFor, readerEditingLabel, sizeOption, typeOption } from "../model/messages"
 import { ScoreSession } from "../components/score-session"
 import { template } from "../components/score-template"
 import type { model } from "../assets/alphatab-core"
@@ -64,7 +64,7 @@ export class WebwriterMusicScore extends HTMLElement {
         type: Boolean,
         attribute: "no-reader-editing",
         inverted: true,
-        label: { _: "Allow reader editing", de: "Lesenden das Bearbeiten erlauben", fr: "Autoriser la modification en lecture", es: "Permitir la edición en modo de lectura" },
+        label: readerEditingLabel(this),
       },
     }
   }

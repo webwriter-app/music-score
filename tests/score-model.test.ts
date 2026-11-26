@@ -22,7 +22,7 @@ import { appendButtonRect, endBarDragDelta, scorePoints, trackLabelPositions } f
 import { Environment, NotationElement, Settings, io, midi, model, rendering, synth } from "../src/assets/alphatab-core"
 import { scoreCompletions } from "../src/components/score-completion"
 import type { CompletionContext } from "../src/components/score-completion"
-import { messages, optionFor, sizeOption } from "../src/model/messages"
+import { messages, optionFor, readerEditingLabel, sizeOption } from "../src/model/messages"
 
 const fixture = new TextEncoder().encode(phraseXml)
 const beats = (score: model.Score, bar = 0) => score.tracks[0].staves[0].bars[bar].voices[0].beats
@@ -54,6 +54,9 @@ describe("score model", function () {
     assert.strictEqual(optionFor(explicitEnglish, sizeOption).options[0].label._, "Compact")
     assert.strictEqual(messages(languageNode("fr-CA")).importScore, "Importer du MusicXML")
     assert.strictEqual(optionFor(languageNode("es-419"), sizeOption).label._, "Tamaño")
+    assert.strictEqual(readerEditingLabel(languageNode("es-419"))._, "Permitir la edición en modo de lectura")
+    assert.strictEqual(readerEditingLabel(explicitEnglish)._, "Allow reader editing")
+    assert.strictEqual(optionFor(inherited, sizeOption).label._, "Grösse")
     assert.strictEqual(optionFor(languageNode("constructor"), sizeOption).label._, "Size")
   })
 

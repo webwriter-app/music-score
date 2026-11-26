@@ -327,9 +327,7 @@
             "name": "HTMLElement"
           },
           "tagName": "webwriter-music-score",
-          "customElement": true,
-          "modulePath": "src/widgets/webwriter-music-score.ts",
-          "definitionPath": "src/widgets/webwriter-music-score.ts"
+          "customElement": true
         },
         {
           "kind": "variable",

@@ -1,6 +1,6 @@
 // Prepares alphaTab for the widget build: writes the patched renderer to src/assets/alphatab-core.js
 // (not tracked) and the patched worker script, the music font and the sound font to dist/vendor.
-// Run by `npm run prepublishOnly` and `npm test` before the build.
+// Run by the build and development scripts.
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises"
 
 const root = new URL("../", import.meta.url)

@@ -1,5 +1,5 @@
-# Music Score (`@webwriter/music-score@0.1.0`)
-[License: MIT](LICENSE) | Version: 0.1.0
+# Music Score (`@webwriter/music-score@1.0.0`)
+[License: MIT](LICENSE) | Version: 1.0.0
 
 Import, edit, and play scores in a WebWriter document.
 
@@ -29,8 +29,14 @@ applied to the pinned release (https://github.com/CoderLine/alphaTab/releases/ta
 
 Use with a CDN (e.g. [jsdelivr](https://jsdelivr.com)):
 ```html
-<link href="https://cdn.jsdelivr.net/npm/@webwriter/music-score/widgets/webwriter-music-score.css" rel="stylesheet">
-<script type="module" src="https://cdn.jsdelivr.net/npm/@webwriter/music-score/widgets/webwriter-music-score.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "@webwriter/widget/permissions": "https://cdn.jsdelivr.net/npm/@webwriter/widget@1.6.0/permissions.js"
+  }
+}
+</script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@webwriter/music-score@1.0.0/dist/widgets/webwriter-music-score.js"></script>
 <webwriter-music-score></webwriter-music-score>
 ```
 
@@ -41,7 +47,6 @@ npm install @webwriter/music-score
 ```
 
 ```html
-<link href="@webwriter/music-score/widgets/webwriter-music-score.css" rel="stylesheet">
 <script type="module" src="@webwriter/music-score/widgets/webwriter-music-score.js"></script>
 <webwriter-music-score></webwriter-music-score>
 ```
@@ -52,7 +57,7 @@ npm install @webwriter/music-score
 | `WebwriterMusicScore.convertFrom` | `object` | - | `{ ".musicxml": "importScoreFile", ".mxl": "importScoreFile", ".xml": "importScoreFile" }` | ✗ |
 | `WebwriterMusicScore.convertTo` | `object` | - | `{ "audio/midi": "exportMidiFile", ".gp": "exportGuitarProFile" }` | ✗ |
 | `options` | - | - | - | ✗ |
-| `allowReaderEditing` (`no-reader-editing`) | `boolean` | Readers can edit the score. Turn off **Allow reader editing** in the widget settings to restrict editing to authors. | `true` | ✓ |
+| `allowReaderEditing` | `boolean` | Whether readers can edit this score. Defaults to true. | - | ✗ |
 | `actions` | - | - | - | ✗ |
 | `type` | `string` | - | - | ✗ |
 | `size` | `keyof typeof scoreScales` | - | - | ✗ |
@@ -99,4 +104,4 @@ npm install @webwriter/music-score
 
 
 ---
-*Generated with @webwriter/build@1.14.0*
+*Generated with @webwriter/build@1.15.0*
