@@ -1,6 +1,6 @@
 {
   "name": "@webwriter/music-score",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Import, edit, and play scores in a WebWriter document.",
   "license": "MIT",
   "type": "module",
@@ -159,6 +159,7 @@
     "./snippets/jianpu.html": "./snippets/jianpu.html",
     "./icon": "./icon.svg",
     "./preview": "./assets/preview.mp4",
+    "./preview/de": "./assets/preview-de.mp4",
     "./custom-elements.json": "./custom-elements.json",
     "./tests/widget.*": {
       "source": "./tests/widget.test.ts",
