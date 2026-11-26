@@ -1,0 +1,366 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "src/widgets/webwriter-music-score.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "Create, import and play scores. A score is stored as alphaTab JSON in a\n`<script type=\"application/json\" slot=\"data\" data-music-score>` child; without it the widget starts with a blank score.\nMusicXML files (`.musicxml`, `.xml`, `.mxl`, up to 8 MiB) are imported through the `importMusicXML` action.\n\nMusic Score bundles alphaTab 1.9.0 under the Mozilla Public License 2.0 (https://www.mozilla.org/MPL/2.0/).\nThe bundled JavaScript keeps the upstream copyright and license notices. `scripts/alphatab.mjs` reproduces the changes\napplied to the pinned release (https://github.com/CoderLine/alphaTab/releases/tag/v1.9.0).",
+          "name": "WebwriterMusicScore",
+          "cssParts": [
+            {
+              "description": "The paper the score is engraved on (a white sheet with black ink).",
+              "name": "sheet"
+            },
+            {
+              "description": "The status line that reports an unreadable score or a notation change. Theme: the interface follows `--ww-text-color` and `--ww-font-family` of the document. The selection, the playback cursor and the focus ring use `--ww-theme-accent-1` (give it enough contrast on white). The engraving fonts stay fixed, because alphaTab measures the score with them. Files: MusicXML (`.musicxml`, `.xml`, `.mxl`) can be imported through `convertFrom`; the whole file is parsed before the score is replaced. The score exports as a MIDI file (`audio/midi`: notes, tempo, instruments and repeats; engraving, lyrics and text are dropped) and as a Guitar Pro 7 file (`.gp`). alphaTab has no MusicXML writer, so MusicXML is import only. There are no signals: nothing in this widget has a value that another widget could use. Keyboard: when score editing is available, every note, rest, beat and score text is a tab stop. Enter or Space selects it, arrow keys move, and typing opens the entry field. Touch: tap selects, a drag moves a note or changes its pitch. Print: the score prints without controls.",
+              "name": "notice"
+            }
+          ],
+          "members": [
+            {
+              "kind": "field",
+              "name": "convertFrom",
+              "type": {
+                "text": "object"
+              },
+              "static": true,
+              "default": "{ \".musicxml\": \"importScoreFile\", \".mxl\": \"importScoreFile\", \".xml\": \"importScoreFile\" }"
+            },
+            {
+              "kind": "field",
+              "name": "convertTo",
+              "type": {
+                "text": "object"
+              },
+              "static": true,
+              "default": "{ \"audio/midi\": \"exportMidiFile\", \".gp\": \"exportGuitarProFile\" }"
+            },
+            {
+              "kind": "field",
+              "name": "#permissions",
+              "privacy": "private",
+              "default": "new PermissionsCore(this)"
+            },
+            {
+              "kind": "field",
+              "name": "options",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "allowReaderEditing",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether readers can edit this score. Defaults to true."
+            },
+            {
+              "kind": "field",
+              "name": "actions",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "type",
+              "type": {
+                "text": "string"
+              },
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "size",
+              "type": {
+                "text": "keyof typeof scoreScales"
+              },
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "#ui",
+              "privacy": "private",
+              "type": {
+                "text": "Ui"
+              },
+              "default": "Object.fromEntries(Array.from(shadow.querySelectorAll(\"[id]\"), node => [node.id, node])) as unknown"
+            },
+            {
+              "kind": "field",
+              "name": "#session",
+              "privacy": "private",
+              "type": {
+                "text": "ScoreSession"
+              },
+              "default": "new ScoreSession(this, ui, { get type() { return element.type }, get size() { return element.size }, get editing() { return element.allowReaderEditing || permissions.editing }, updateControls: () => this.#updateControls(), sync: keepSelection => this.#sync(keepSelection), writeScore: (text, keepSelection) => this.#writeScore(text, keepSelection), dataBlock: () => this.#dataBlock(), labelsBlock: () => this.#labelsBlock(), })"
+            },
+            {
+              "kind": "field",
+              "name": "#focusListeners",
+              "privacy": "private",
+              "type": {
+                "text": "AbortController | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#focusCheck",
+              "privacy": "private",
+              "type": {
+                "text": "ReturnType<typeof setTimeout> | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#importRequest",
+              "privacy": "private",
+              "type": {
+                "text": "number"
+              },
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "#observer",
+              "privacy": "private",
+              "default": "new MutationObserver(() => this.#sync())"
+            },
+            {
+              "kind": "field",
+              "name": "#languageObserver",
+              "privacy": "private",
+              "default": "new MutationObserver(() => this.#refreshLanguage())"
+            },
+            {
+              "kind": "method",
+              "name": "#refreshLanguage",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "focus",
+              "parameters": [
+                {
+                  "name": "options",
+                  "optional": true,
+                  "type": {
+                    "text": "FocusOptions"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "importMusicXML",
+              "parameters": [
+                {
+                  "name": "[file]",
+                  "type": {
+                    "text": "File[]"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "importScoreFile",
+              "parameters": [
+                {
+                  "name": "file",
+                  "type": {
+                    "text": "File"
+                  }
+                }
+              ],
+              "description": "Parses a whole MusicXML file first, then returns the function that replaces the score."
+            },
+            {
+              "kind": "method",
+              "name": "exportMidiFile"
+            },
+            {
+              "kind": "method",
+              "name": "exportGuitarProFile"
+            },
+            {
+              "kind": "method",
+              "name": "#fileName",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "extension",
+                  "type": {
+                    "text": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#updateFocus",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "focused",
+                  "default": "this.matches(\":focus-within\") && this.ownerDocument.hasFocus()"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#dataBlock",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Element | undefined"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#labelsBlock",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Element | undefined"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "#writeScore",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "text",
+                  "type": {
+                    "text": "string"
+                  }
+                },
+                {
+                  "name": "keepSelection",
+                  "default": "false"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#sync",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "keepSelection",
+                  "default": "false"
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#renderScore",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "score",
+                  "type": {
+                    "text": "model.Score"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#updateControls",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "innerHTML",
+              "default": "template"
+            }
+          ],
+          "events": [
+            {
+              "name": "optionschange",
+              "type": {
+                "text": "Event"
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "contenteditable"
+            },
+            {
+              "name": "lang",
+              "type": {
+                "text": "string"
+              },
+              "description": "Language of the interface. Defaults to the language of the document."
+            },
+            {
+              "name": "type",
+              "type": {
+                "text": "string"
+              },
+              "description": "Notation: \"standard\", \"guitar-tab\", \"drum-tab\" or \"jianpu\"."
+            },
+            {
+              "name": "size",
+              "type": {
+                "text": "string"
+              },
+              "description": "Scale of the notation: \"compact\", \"normal\" or \"spacious\"."
+            },
+            {
+              "name": "no-reader-editing",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Restrict score editing to authors. Readers can edit by default."
+            }
+          ],
+          "superclass": {
+            "name": "HTMLElement"
+          },
+          "tagName": "webwriter-music-score",
+          "customElement": true
+        },
+        {
+          "kind": "variable",
+          "name": "target",
+          "default": "event.target"
+        }
+      ],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "tag",
+          "declaration": {
+            "name": "target",
+            "module": "src/widgets/webwriter-music-score.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "WebwriterMusicScore",
+          "declaration": {
+            "name": "WebwriterMusicScore",
+            "module": "src/widgets/webwriter-music-score.ts"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "webwriter-music-score",
+          "declaration": {
+            "name": "WebwriterMusicScore",
+            "module": "src/widgets/webwriter-music-score.ts"
+          }
+        }
+      ]
+    }
+  ]
+}

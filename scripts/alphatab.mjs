@@ -1,12 +1,17 @@
+// Prepares alphaTab for the widget build: writes the patched renderer to src/assets/alphatab-core.js
+// (not tracked) and the patched worker script, the music font and the sound font to dist/vendor.
+// Run by the build and development scripts.
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises"
 
-const root = new URL("./", import.meta.url)
+const root = new URL("../", import.meta.url)
 const dependency = new URL("./node_modules/@coderline/alphatab/", root)
 const dist = new URL("./dist/", root)
 const vendor = new URL("./vendor/", dist)
+const patchedCore = new URL("./src/assets/alphatab-core.js", root)
 
+// The widget bundle imports the patched renderer from src/assets. The worker script, the
+// music font and the sound font are loaded at run time from dist/vendor next to the bundle.
 await rm(dist, { recursive: true, force: true })
-await cp(new URL("./src/", root), dist, { recursive: true })
 await Promise.all(["font/", "soundfont/"].map(path => mkdir(new URL(path, vendor), { recursive: true })))
 
 const assets = [
@@ -215,37 +220,6 @@ function loadDrumsOnSeparateChannels(source) {
 }
 
 await Promise.all([
-  writeFile(new URL(corePath, vendor), loadDrumsOnSeparateChannels(patchScoreRenderer(core.replace(bodyFontProbe, nativeFontProbe)))),
+  writeFile(patchedCore, loadDrumsOnSeparateChannels(patchScoreRenderer(core.replace(bodyFontProbe, nativeFontProbe)))),
   writeFile(new URL(workerPath, vendor), loadDrumsOnSeparateChannels(patchScoreRenderer(worker))),
 ])
-
-const { importMusicXML, serializeScore } = await import("./dist/score-model.js")
-const { importer } = await import("./dist/vendor/alphaTab.core.min.mjs")
-const phrase = importMusicXML(await readFile(new URL("./test/phrase.musicxml", root)))
-const prelude = importMusicXML(await readFile(new URL("./test/bach-prelude.musicxml", root)))
-const snippets = new URL("./snippets/", dist)
-await mkdir(snippets)
-const examples = [
-  ["practice-phrase", phrase],
-  ["bach-prelude", prelude],
-  ["guitar-tab", importer.ScoreLoader.loadAlphaTex(String.raw`
-    \title "Guitar phrase"
-    \track "Guitar" { instrument 25 }
-    \tuning E4 B3 G3 D3 A2 E2
-    :4 0.6 2.6 2.5 0.4 | 2.4 2.5 2.6 0.6
-  `), "guitar-tab"],
-  ["drum-tab", importer.ScoreLoader.loadAlphaTex(String.raw`
-    \title "Drum groove"
-    \track "Drums" { instrument percussion }
-    \clef neutral
-    \articulation defaults
-    :8 (KickHit@5 HiHatClosed@1) HiHatClosed@1 SnareHit@3 HiHatClosed@1
-       KickHit@5 HiHatClosed@1 SnareHit@3 HiHatOpen@1
-  `), "drum-tab"],
-  ["jianpu", phrase, "jianpu"],
-]
-await Promise.all(examples.map(([name, score, type]) =>
-  writeFile(new URL(name + ".html", snippets), `<webwriter-music-score${type ? ` type="${type}"` : ""}>
-  <script type="application/json" slot="data" data-music-score>${serializeScore(score)}</script>
-</webwriter-music-score>
-`)))

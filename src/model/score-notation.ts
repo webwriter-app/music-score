@@ -1,12 +1,12 @@
-import { model } from "./vendor/alphaTab.core.min.mjs"
+import { model } from "../assets/alphatab-core"
 
 export const defaultScoreType = "standard"
 export const scoreTypes = [defaultScoreType, "guitar-tab", "drum-tab", "jianpu"]
 export const scoreScales = { compact: 0.7, normal: 0.8, spacious: 1 }
 
-export function configureBlankInstrument(staff, track, type) {
+export function configureBlankInstrument(staff: model.Staff, track: model.Track, type?: string) {
   if (type === "guitar-tab") {
-    staff.stringTuning = model.Tuning.getDefaultTuningFor(6)
+    staff.stringTuning = model.Tuning.getDefaultTuningFor(6)!
     track.playbackInfo.program = 25
   } else if (type === "drum-tab") {
     staff.isPercussion = true
@@ -15,9 +15,9 @@ export function configureBlankInstrument(staff, track, type) {
   }
 }
 
-function useGuitarTab(staff) {
+function useGuitarTab(staff: model.Staff): boolean {
   if (staff.isPercussion) return false
-  const tuning = staff.isStringed ? staff.stringTuning : model.Tuning.getDefaultTuningFor(6)
+  const tuning = staff.isStringed ? staff.stringTuning : model.Tuning.getDefaultTuningFor(6)!
   const openStrings = tuning.tunings.slice().reverse().map(pitch => pitch + staff.capo)
   const fingerings = new Map()
   for (const bar of staff.bars) {
@@ -57,7 +57,7 @@ function useGuitarTab(staff) {
 
 // Apply display flags and any derived fingerings only to the score used for rendering.
 // Authoring commands read the original score data from the document.
-export function applyScoreType(score, type) {
+export function applyScoreType(score: model.Score, type: string): boolean {
   let usedStandardStaff = false
   for (const track of score.tracks) {
     for (const staff of track.staves) {
