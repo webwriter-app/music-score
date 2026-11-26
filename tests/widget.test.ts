@@ -48,17 +48,24 @@ describe("<webwriter-music-score>", function () {
     it("renders the score", async function () {
       assert.isTrue(await until(() => root.querySelector("#score svg")), "no svg")
     })
-    it("hides the editing layer", async function () {
-      await until(() => root.querySelector("#score svg"))
-      assert.isTrue(points().hidden)
+    it("lets readers edit the authored score by default", async function () {
+      readMode()
+      const append = () => root.querySelector<HTMLButtonElement>('[data-kind="append"]')
+      assert.isTrue(await until(() => !points().hidden && append()))
+      const data = score.querySelector("script[data-music-score]")!
+      const measureCount = () => JSON.parse(data.textContent!).score.masterbars.length
+      const before = measureCount()
+      score.focus()
+      append()!.click()
+      assert.isTrue(await until(() => measureCount() === before + 1))
+      assert.isFalse(score.isContentEditable)
     })
-    it("does not display the editing layer", async function () {
-      await until(() => root.querySelector("#score svg"))
-      assert.strictEqual(getComputedStyle(points()).display, "none")
-    })
-    it("makes no edit targets", async function () {
-      await until(() => root.querySelector("#score svg"))
-      assert.strictEqual(targets().length, 0)
+    it("lets authors turn reader editing off and back on", async function () {
+      assert.isTrue(await until(() => noteTargets().length > 0))
+      score.setAttribute("no-reader-editing", "")
+      assert.isTrue(await until(() => points().hidden && targets().length === 0))
+      score.removeAttribute("no-reader-editing")
+      assert.isTrue(await until(() => !points().hidden && noteTargets().length > 0))
     })
     it("shows the transport", async function () {
       assert.isTrue(await until(() => (root.getElementById("transport") as HTMLElement).hidden === false))
@@ -92,26 +99,23 @@ describe("<webwriter-music-score>", function () {
       target.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, composed: true, cancelable: true }))
       assert.isTrue(await until(() => ![...targets()].some(t => t.getAttribute("aria-pressed") === "true")), "still selected")
     })
-    it("hides the layer when edit mode ends", async function () {
+    it("keeps the layer when switching to read mode", async function () {
       assert.isTrue(await until(() => noteTargets().length > 0))
       readMode()
-      assert.isTrue(await until(() => points().hidden === true), "hidden=" + points().hidden)
+      assert.isTrue(await until(() => !points().hidden && noteTargets().length > 0))
     })
-    it("removes the targets when edit mode ends", async function () {
+    it("removes the targets when entering read mode with reader editing disabled", async function () {
+      score.setAttribute("no-reader-editing", "")
       assert.isTrue(await until(() => noteTargets().length > 0))
       readMode()
-      assert.isTrue(await until(() => targets().length === 0), String(targets().length))
+      assert.isTrue(await until(() => points().hidden && targets().length === 0))
     })
   })
 
   describe("moving the widget", function () {
-    it("keeps the layer hidden after reconnecting in read mode", async function () {
-      await until(() => root.querySelector("#score svg"))
-      const parent = score.parentNode as Node
-      score.remove()
-      parent.appendChild(score)
-      await until(() => root.querySelector("#score svg"))
-      assert.isTrue(points().hidden)
+    it("keeps reader editing available after reconnecting", async function () {
+      await reconnect()
+      assert.isTrue(await until(() => !points().hidden && noteTargets().length > 0))
     })
     async function reconnect() {
       await until(() => root.querySelector("#score svg"))
@@ -121,11 +125,13 @@ describe("<webwriter-music-score>", function () {
       await until(() => root.querySelector("#score svg"))
     }
     it("switches to edit mode after reconnecting", async function () {
+      score.setAttribute("no-reader-editing", "")
       await reconnect()
       editMode()
       assert.isTrue(await until(() => points().hidden === false && noteTargets().length > 0), "hidden=" + points().hidden)
     })
     it("switches back to read mode after reconnecting", async function () {
+      score.setAttribute("no-reader-editing", "")
       await reconnect()
       editMode()
       await until(() => points().hidden === false && noteTargets().length > 0)
@@ -194,10 +200,11 @@ describe("<webwriter-music-score>", function () {
       clientX: x, clientY: y, bubbles: true, composed: true, cancelable: true,
     })
     it("moves focus into the widget with focus()", async function () {
-      await until(() => root.querySelector("#score svg"))
+      assert.isTrue(await until(() => noteTargets().length > 0), "no edit targets")
       score.focus()
       const active = root.activeElement as HTMLElement
       assert.isNotNull(active)
+      assert.isTrue(active.matches('[data-kind="insert"], [data-kind="beat"], [data-kind="note"]'))
       const box = active.getBoundingClientRect()
       assert.isAbove(box.width * box.height, 0, "focus lands on a rendered element")
       assert.isFalse(active.closest("[hidden]") !== null)

@@ -52,6 +52,7 @@ npm install @webwriter/music-score
 | `WebwriterMusicScore.convertFrom` | `object` | - | `{ ".musicxml": "importScoreFile", ".mxl": "importScoreFile", ".xml": "importScoreFile" }` | ✗ |
 | `WebwriterMusicScore.convertTo` | `object` | - | `{ "audio/midi": "exportMidiFile", ".gp": "exportGuitarProFile" }` | ✗ |
 | `options` | - | - | - | ✗ |
+| `allowReaderEditing` (`no-reader-editing`) | `boolean` | Readers can edit the score. Turn off **Allow reader editing** in the widget settings to restrict editing to authors. | `true` | ✓ |
 | `actions` | - | - | - | ✗ |
 | `type` | `string` | - | - | ✗ |
 | `size` | `keyof typeof scoreScales` | - | - | ✗ |
@@ -81,7 +82,7 @@ npm install @webwriter/music-score
 | Name | Description |
 | :--: | :---------: |
 | sheet | The paper the score is engraved on (a white sheet with black ink). |
-| notice | The status line that reports an unreadable score or a notation change. Theme: the interface follows `--ww-text-color` and `--ww-font-family` of the document. The selection, the playback cursor and the focus ring use `--ww-theme-accent-1` (give it enough contrast on white). The engraving fonts stay fixed, because alphaTab measures the score with them. Files: MusicXML (`.musicxml`, `.xml`, `.mxl`) can be imported through `convertFrom`; the whole file is parsed before the score is replaced. The score exports as a MIDI file (`audio/midi`: notes, tempo, instruments and repeats; engraving, lyrics and text are dropped) and as a Guitar Pro 7 file (`.gp`). alphaTab has no MusicXML writer, so MusicXML is import only. There are no signals: nothing in this widget has a value that another widget could use. Keyboard: in read mode Tab reaches Play and Stop. In edit mode every note, rest, beat and score text is a tab stop; Enter or Space selects it, arrow keys move, and typing opens the entry field. Touch: tap selects, a drag moves a note or changes its pitch. Print: the score prints without controls. |
+| notice | The status line that reports an unreadable score or a notation change. Theme: the interface follows `--ww-text-color` and `--ww-font-family` of the document. The selection, the playback cursor and the focus ring use `--ww-theme-accent-1` (give it enough contrast on white). The engraving fonts stay fixed, because alphaTab measures the score with them. Files: MusicXML (`.musicxml`, `.xml`, `.mxl`) can be imported through `convertFrom`; the whole file is parsed before the score is replaced. The score exports as a MIDI file (`audio/midi`: notes, tempo, instruments and repeats; engraving, lyrics and text are dropped) and as a Guitar Pro 7 file (`.gp`). alphaTab has no MusicXML writer, so MusicXML is import only. There are no signals: nothing in this widget has a value that another widget could use. Keyboard: when score editing is available, every note, rest, beat and score text is a tab stop. Enter or Space selects it, arrow keys move, and typing opens the entry field. Touch: tap selects, a drag moves a note or changes its pitch. Print: the score prints without controls. |
 
 *[CSS parts](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_shadow_parts) allow freely styling internals of the widget with CSS.*
 

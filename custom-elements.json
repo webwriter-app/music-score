@@ -16,7 +16,7 @@
               "name": "sheet"
             },
             {
-              "description": "The status line that reports an unreadable score or a notation change. Theme: the interface follows `--ww-text-color` and `--ww-font-family` of the document. The selection, the playback cursor and the focus ring use `--ww-theme-accent-1` (give it enough contrast on white). The engraving fonts stay fixed, because alphaTab measures the score with them. Files: MusicXML (`.musicxml`, `.xml`, `.mxl`) can be imported through `convertFrom`; the whole file is parsed before the score is replaced. The score exports as a MIDI file (`audio/midi`: notes, tempo, instruments and repeats; engraving, lyrics and text are dropped) and as a Guitar Pro 7 file (`.gp`). alphaTab has no MusicXML writer, so MusicXML is import only. There are no signals: nothing in this widget has a value that another widget could use. Keyboard: in read mode Tab reaches Play and Stop. In edit mode every note, rest, beat and score text is a tab stop; Enter or Space selects it, arrow keys move, and typing opens the entry field. Touch: tap selects, a drag moves a note or changes its pitch. Print: the score prints without controls.",
+              "description": "The status line that reports an unreadable score or a notation change. Theme: the interface follows `--ww-text-color` and `--ww-font-family` of the document. The selection, the playback cursor and the focus ring use `--ww-theme-accent-1` (give it enough contrast on white). The engraving fonts stay fixed, because alphaTab measures the score with them. Files: MusicXML (`.musicxml`, `.xml`, `.mxl`) can be imported through `convertFrom`; the whole file is parsed before the score is replaced. The score exports as a MIDI file (`audio/midi`: notes, tempo, instruments and repeats; engraving, lyrics and text are dropped) and as a Guitar Pro 7 file (`.gp`). alphaTab has no MusicXML writer, so MusicXML is import only. There are no signals: nothing in this widget has a value that another widget could use. Keyboard: when score editing is available, every note, rest, beat and score text is a tab stop. Enter or Space selects it, arrow keys move, and typing opens the entry field. Touch: tap selects, a drag moves a note or changes its pitch. Print: the score prints without controls.",
               "name": "notice"
             }
           ],
@@ -49,6 +49,14 @@
               "kind": "field",
               "name": "options",
               "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "allowReaderEditing",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Whether readers can edit this score. Defaults to true."
             },
             {
               "kind": "field",
@@ -87,7 +95,7 @@
               "type": {
                 "text": "ScoreSession"
               },
-              "default": "new ScoreSession(this, ui, { get type() { return element.type }, get size() { return element.size }, get editing() { return permissions.editing }, updateControls: () => this.#updateControls(), sync: keepSelection => this.#sync(keepSelection), writeScore: (text, keepSelection) => this.#writeScore(text, keepSelection), dataBlock: () => this.#dataBlock(), labelsBlock: () => this.#labelsBlock(), })"
+              "default": "new ScoreSession(this, ui, { get type() { return element.type }, get size() { return element.size }, get editing() { return element.allowReaderEditing || permissions.editing }, updateControls: () => this.#updateControls(), sync: keepSelection => this.#sync(keepSelection), writeScore: (text, keepSelection) => this.#writeScore(text, keepSelection), dataBlock: () => this.#dataBlock(), labelsBlock: () => this.#labelsBlock(), })"
             },
             {
               "kind": "field",
@@ -306,6 +314,13 @@
                 "text": "string"
               },
               "description": "Scale of the notation: \"compact\", \"normal\" or \"spacious\"."
+            },
+            {
+              "name": "no-reader-editing",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "Restrict score editing to authors. Readers can edit by default."
             }
           ],
           "superclass": {

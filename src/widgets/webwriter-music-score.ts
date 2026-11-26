@@ -29,6 +29,7 @@ function customElement(tag: string) {
  *
  * @attr {string} type - Notation: "standard", "guitar-tab", "drum-tab" or "jianpu".
  * @attr {string} size - Scale of the notation: "compact", "normal" or "spacious".
+ * @attr {boolean} no-reader-editing - Restrict score editing to authors. Readers can edit by default.
  * @attr {string} lang - Language of the interface. Defaults to the language of the document.
  *
  * @part sheet - The paper the score is engraved on (a white sheet with black ink).
@@ -43,7 +44,7 @@ function customElement(tag: string) {
  * lyrics and text are dropped) and as a Guitar Pro 7 file (`.gp`). alphaTab has no MusicXML writer, so MusicXML is import only.
  * There are no signals: nothing in this widget has a value that another widget could use.
  *
- * Keyboard: in read mode Tab reaches Play and Stop. In edit mode every note, rest, beat and score text is a tab stop;
+ * Keyboard: when score editing is available, every note, rest, beat and score text is a tab stop.
  * Enter or Space selects it, arrow keys move, and typing opens the entry field. Touch: tap selects, a drag moves
  * a note or changes its pitch. Print: the score prints without controls.
  */
@@ -51,12 +52,30 @@ function customElement(tag: string) {
 export class WebwriterMusicScore extends HTMLElement {
   static convertFrom = { ".musicxml": "importScoreFile", ".mxl": "importScoreFile", ".xml": "importScoreFile" }
   static convertTo = { "audio/midi": "exportMidiFile", ".gp": "exportGuitarProFile" }
-  static observedAttributes = ["contenteditable", "lang", "type", "size"]
+  static observedAttributes = ["contenteditable", "lang", "type", "size", "no-reader-editing"]
 
   #permissions = new PermissionsCore(this)
 
   get options() {
-    return { type: optionFor(this, typeOption), size: optionFor(this, sizeOption) }
+    return {
+      type: optionFor(this, typeOption),
+      size: optionFor(this, sizeOption),
+      allowReaderEditing: {
+        type: Boolean,
+        attribute: "no-reader-editing",
+        inverted: true,
+        label: { _: "Allow reader editing", de: "Lesenden das Bearbeiten erlauben", fr: "Autoriser la modification en lecture", es: "Permitir la edición en modo de lectura" },
+      },
+    }
+  }
+
+  /** Whether readers can edit this score. Defaults to true. */
+  get allowReaderEditing(): boolean {
+    return !this.hasAttribute("no-reader-editing")
+  }
+
+  set allowReaderEditing(allowed: boolean) {
+    this.toggleAttribute("no-reader-editing", !allowed)
   }
 
   get actions() {
@@ -100,7 +119,7 @@ export class WebwriterMusicScore extends HTMLElement {
     this.#session = new ScoreSession(this, ui, {
       get type() { return element.type },
       get size() { return element.size },
-      get editing() { return permissions.editing },
+      get editing() { return element.allowReaderEditing || permissions.editing },
       updateControls: () => this.#updateControls(),
       sync: keepSelection => this.#sync(keepSelection),
       writeScore: (text, keepSelection) => this.#writeScore(text, keepSelection),
@@ -181,6 +200,7 @@ export class WebwriterMusicScore extends HTMLElement {
 
   connectedCallback() {
     this.#permissions.connect()
+    this.#ui.points.hidden = !this.#session.editing
     this.#focusListeners = new AbortController()
     const { signal } = this.#focusListeners
     const view = this.ownerDocument.defaultView
@@ -231,8 +251,11 @@ export class WebwriterMusicScore extends HTMLElement {
     if (name === "lang") {
       this.#refreshLanguage()
     } else {
+      const hidden = !this.#session.editing
+      if (this.#ui.points.hidden === hidden) return
+      this.#ui.points.hidden = hidden
       this.#session.view.placeGutter()
-      if (this.#session.editing) this.#session.points.drawPoints()
+      if (!hidden) this.#session.points.drawPoints()
       else {
         this.#session.drag.finishDrag()
         this.#session.append.releaseAppendDrag()
@@ -246,8 +269,11 @@ export class WebwriterMusicScore extends HTMLElement {
   }
 
   focus(options?: FocusOptions) {
-    const { play, points, surface } = this.#ui
-    const target = !points.hidden && this.#ui.targets.querySelector<HTMLElement>(".point") || (!play.disabled && !play.closest("[hidden]") ? play : surface)
+    const { play, points, surface, targets } = this.#ui
+    const musicalTarget = points.hidden ? null
+      : targets.querySelector<HTMLElement>('[data-kind="insert"], [data-kind="beat"], [data-kind="note"]')
+    const transportTarget = !play.disabled && !play.closest("[hidden]") ? play : null
+    const target = musicalTarget ?? transportTarget ?? surface
     target.focus(options)
   }
 

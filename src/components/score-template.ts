@@ -148,7 +148,7 @@ export const template = `
     <div id="score"></div>
     <div id="trackLabels" class="track-labels"></div>
     <div class="append-layer" aria-hidden="true"><div id="appendScore"></div></div>
-    <div id="points" class="points" data-ww-can="edit" hidden>
+    <div id="points" class="points" hidden>
       <div id="targets" tabindex="-1"></div>
       <input id="tempo" class="point inline-input tempo-input" type="text" inputmode="numeric" autocomplete="off" hidden>
       <input id="scoreText" class="point inline-input text-input" type="text" autocomplete="off" hidden>
