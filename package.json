@@ -1,6 +1,6 @@
 {
   "name": "@webwriter/music-score",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Import, edit, and play scores in a WebWriter document.",
   "license": "MIT",
   "type": "module",
@@ -144,7 +144,8 @@
     "custom-elements.json",
     "scripts/alphatab.mjs",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "assets"
   ],
   "exports": {
     "./widgets/webwriter-music-score.*": {
@@ -157,6 +158,7 @@
     "./snippets/drum-tab.html": "./snippets/drum-tab.html",
     "./snippets/jianpu.html": "./snippets/jianpu.html",
     "./icon": "./icon.svg",
+    "./preview": "./assets/preview.mp4",
     "./custom-elements.json": "./custom-elements.json",
     "./tests/widget.*": {
       "source": "./tests/widget.test.ts",
