@@ -1,5 +1,5 @@
-# Music Score (`@webwriter/music-score@1.1.1`)
-[License: MIT](LICENSE) | Version: 1.1.1
+# Music Score (`@webwriter/music-score@1.1.2`)
+[License: MIT](LICENSE) | Version: 1.1.2
 
 Import, edit, and play scores in a WebWriter document.
 
